@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LAYOUT</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-theme="light">
+<header class="topbar">
+  <div class="brand"><span class="logo">∫</span><div class="brand-txt"><div class="brand-name">高数刷题营</div><div class="brand-sub">布局自测</div></div></div>
+  <button id="themeBtn" class="icon-btn">🌙</button>
+</header>
+<nav class="tabs" id="tabs"></nav>
+<main id="app"></main>
+<footer class="foot"><button id="resetBtn" class="foot-btn">重置全部数据</button></footer>
+<div id="result" style="display:none">PENDING</div>
+
+<script src="../js/katex-fallback.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/qb-limit.js"></script>
+<script src="../js/qb-derivative.js"></script>
+<script src="../js/qb-app.js"></script>
+<script src="../js/qb-integral.js"></script>
+<script src="../js/qb-extra.js"></script>
+<script src="../js/scheduler.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/app.js"></script>
+<script>
+var results = [];
+function log(name, ok, extra) { results.push((ok ? 'PASS' : 'FAIL') + ' ' + name + (extra ? ' | ' + extra : '')); }
+function click(el) { el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }
+function finish() {
+  document.getElementById('result').textContent = 'RESULTS::' + results.join(';;');
+  document.title = 'LAYOUT-DONE';
+}
+document.addEventListener('DOMContentLoaded', function () {
+  window.__initApp();
+  setTimeout(run, 1000);
+});
+setTimeout(finish, 20000);
+function run() {
+  try {
+    var vw = window.innerWidth;
+    var docW = document.documentElement.scrollWidth;
+    log('viewport-width', true, vw + 'px');
+    log('no-horizontal-overflow', docW <= vw + 1, 'scrollWidth=' + docW);
+
+    // 今日练习页检查
+    var card = document.querySelector('.qcard');
+    log('card-fits-viewport', card && card.getBoundingClientRect().width <= vw + 1,
+      card ? 'cardW=' + Math.round(card.getBoundingClientRect().width) : 'no-card');
+    var marks = document.querySelector('.mark-row');
+    log('mark-row-wrap', marks && marks.children.length === 3);
+    var opt = document.querySelector('.opt');
+    log('option-wide-tap', opt && opt.getBoundingClientRect().height >= 36,
+      opt ? 'h=' + Math.round(opt.getBoundingClientRect().height) : '');
+
+    // 统计栅格列数（学习记录页）
+    click(document.querySelector('.tab[data-view="records"]'));
+    setTimeout(function () {
+      var stats = document.querySelector('.stats');
+      if (stats) {
+        var cols = getComputedStyle(stats).gridTemplateColumns.split(' ').length;
+        log('stats-columns', (vw <= 640 && cols === 2) || (vw > 640 && cols === 4), 'cols=' + cols);
+      } else log('stats-columns', false, 'no stats');
+
+      // 掌握度栅格
+      click(document.querySelector('.tab[data-view="mastery"]'));
+      setTimeout(function () {
+        var grid = document.querySelector('.mas-grid');
+        if (grid) {
+          var gcols = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+          var expect = vw <= 640 ? 1 : (vw <= 1024 ? 2 : 3);
+          log('mastery-columns', gcols === expect, 'cols=' + gcols + ' expect=' + expect);
+        }
+        // 错题本页（空态）
+        click(document.querySelector('.tab[data-view="wrong"]'));
+        setTimeout(function () {
+          log('wrong-empty-ok', !!document.querySelector('.empty') || !!document.querySelector('.wcard'));
+          // 专项练习配置面板
+          click(document.querySelector('.tab[data-view="custom"]'));
+          setTimeout(function () {
+            var cgrid = document.querySelector('.ctype-grid');
+            if (cgrid) {
+              var ccols = getComputedStyle(cgrid).gridTemplateColumns.split(' ').length;
+              log('custom-config-grid', ccols >= 2, 'cols=' + ccols);
+              log('custom-7-type-btns', document.querySelectorAll('.ctype').length === 7);
+            } else log('custom-config-grid', false, 'no grid');
+            log('custom-no-overflow', document.documentElement.scrollWidth <= window.innerWidth + 1,
+              'scrollWidth=' + document.documentElement.scrollWidth);
+            // 深色模式下无溢出
+            click(document.getElementById('themeBtn'));
+            setTimeout(function () {
+              log('dark-no-overflow', document.documentElement.scrollWidth <= window.innerWidth + 1,
+                'scrollWidth=' + document.documentElement.scrollWidth);
+              finish();
+            }, 150);
+          }, 150);
+        }, 150);
+      }, 150);
+    }, 150);
+  } catch (e) {
+    log('exception', false, e.message);
+    finish();
+  }
+}
+</script>
+</body>
+</html>
