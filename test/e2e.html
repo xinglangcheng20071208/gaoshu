@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E2E</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-theme="light">
+<header class="topbar">
+  <div class="brand"><span class="logo">∫</span><div class="brand-txt"><div class="brand-name">高数刷题营</div><div class="brand-sub">E2E 自测</div></div></div>
+  <button id="themeBtn" class="icon-btn">🌙</button>
+</header>
+<nav class="tabs" id="tabs"></nav>
+<main id="app"></main>
+<footer class="foot"><button id="resetBtn" class="foot-btn">重置全部数据</button></footer>
+<div id="result" style="display:none">PENDING</div>
+
+<script src="../js/katex-fallback.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/qb-limit.js"></script>
+<script src="../js/qb-derivative.js"></script>
+<script src="../js/qb-app.js"></script>
+<script src="../js/qb-integral.js"></script>
+<script src="../js/qb-extra.js"></script>
+<script src="../js/scheduler.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/app.js"></script>
+<script>
+var results = [];
+var rawClicks = [];
+var errs = [];
+window.addEventListener('error', function (e) {
+  errs.push((e.message || '?') + ' @' + (e.lineno || 0) + ' src=' + (e.filename || '').slice(-40));
+});
+function log(name, ok, extra) { results.push((ok ? 'PASS' : 'FAIL') + ' ' + name + (extra ? ' | ' + extra : '')); }
+function click(el) { el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }
+function step(fn, ms) { setTimeout(fn, ms); }
+function finish() {
+  document.getElementById('result').textContent = 'RESULTS::' + results.join(';;') + ';;CLICKS::' + rawClicks.join(',') + ';;ERRS::' + errs.join('||');
+  document.title = 'E2E-DONE';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  window.__initApp();
+  log('boot', true);
+  setTimeout(go, 1200);
+});
+setTimeout(finish, 20000); // 兜底：20 秒内没跑完也输出结果
+window.addEventListener('load', function () {
+  if (window.__rerenderAll) window.__rerenderAll();
+});
+function go() {
+  try {
+    var card = document.querySelector('.qcard');
+    if (!card) { log('render-card', false); return finish(); }
+    log('render-card', true);
+    log('marks-3-above', document.querySelectorAll('.mark-btn').length === 3);
+    log('options-4', document.querySelectorAll('.opt').length === 4);
+    var dbg0 = window.__appDebug;
+    log('daily-qid', dbg0.ensureDaily().questions[0].qid);
+    log('dom-qid', document.querySelector('.opt').getAttribute('data-qid'));
+    log('qid-match', dbg0.ensureDaily().questions[0].qid === document.querySelector('.opt').getAttribute('data-qid'));
+    log('settings-diff', dbg0.state().settings.difficulty);
+    log('daily-diff', dbg0.ensureDaily().difficulty);
+    var ls0 = localStorage.getItem('gaoshu_state_v1');
+    log('localstorage-before-pick', !!ls0, ls0 ? ls0.slice(0, 80) : '');
+
+      // 1. 选择第一个选项
+      click(document.querySelectorAll('.opt')[0]);
+      step(function () {
+        var dbg = window.__appDebug.state();
+        var dk = Object.keys(dbg.daily)[0];
+        var st1 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+        var dk1 = Object.keys(st1.daily)[0];
+        log('pick-saved-in-memory', dbg.daily[dk] && dbg.daily[dk].answers && Object.keys(dbg.daily[dk].answers).length === 1,
+          'mem=' + JSON.stringify(dbg.daily[dk] && dbg.daily[dk].answers).slice(0, 100));
+        log('pick-saved-in-storage', st1.daily[dk1] && st1.daily[dk1].answers && Object.keys(st1.daily[dk1].answers).length === 1,
+          'ls=' + JSON.stringify(st1.daily[dk1] && st1.daily[dk1].answers).slice(0, 100));
+        var sub = document.querySelector('[data-submit]');
+        log('submit-enabled-after-pick', sub && !sub.disabled);
+        // 2. 提交
+        click(sub);
+        step(function () {
+          log('feedback-shown', !!document.querySelector('.qc-feedback'));
+          log('solution-shown', !!document.querySelector('.qc-solution'));
+          log('steps-nonempty', document.querySelectorAll('.sol-steps li').length >= 1);
+          // 3. 标记「未掌握」
+          click(document.querySelector('.mark-btn[data-mark="not_mastered"]'));
+          step(function () {
+            var st = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+            var dailyKey = Object.keys(st.daily)[0];
+            var firstType = st.daily[dailyKey].questions[0].typeId;
+            log('mark-saved-not_mastered', st.types[firstType] && st.types[firstType].status === 'not_mastered', JSON.stringify(st.types[firstType]));
+            log('nmDays=1', st.types[firstType] && st.types[firstType].nmDays === 1);
+            log('wrongbook-added', st.wrongbook.length >= 1);
+            var wb = st.wrongbook[0];
+            log('wrongbook-mark-not', wb && wb.mark === 'not_mastered', wb && wb.mark);
+            log('history-recorded', st.history.length === 1);
+            log('daily-10-questions', st.daily[dailyKey].questions.length === 10);
+
+            // 4. 切到错题本
+            click(document.querySelector('.tab[data-view="wrong"]'));
+            step(function () {
+              log('wrong-view-entry', !!document.querySelector('.wcard'));
+              click(document.querySelector('[data-wtoggle]'));
+              step(function () {
+                log('wrong-solution-open', !!document.querySelector('.wc-sol'));
+                // 5. 标记已掌握并移除
+                click(document.querySelector('[data-wmaster]'));
+                step(function () {
+                  var st2 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                  var firstType2 = st2.daily[dailyKey].questions[0].typeId;
+                  log('wmaster-removes-entry', st2.wrongbook.length === 0, 'n=' + st2.wrongbook.length);
+                  log('wmaster-sets-mastered', st2.types[firstType2].status === 'mastered');
+                  // 6. 学习记录
+                  click(document.querySelector('.tab[data-view="records"]'));
+                  step(function () {
+                    log('records-stats', !!document.querySelector('.stats'));
+                    log('records-hist-1', document.querySelectorAll('.hist-item').length === 1);
+                    log('records-type-table', document.querySelectorAll('.ts-row').length === 7);
+                    // 7. 掌握度
+                    click(document.querySelector('.tab[data-view="mastery"]'));
+                    step(function () {
+                      log('mastery-7-cards', document.querySelectorAll('.mas-card').length === 7);
+                      // 8. 深色模式切换
+                      click(document.getElementById('themeBtn'));
+                      step(function () {
+                        log('theme-toggled-dark', document.body.getAttribute('data-theme') === 'dark');
+                        var st3 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                        log('theme-persisted', st3.settings.theme === 'dark');
+
+                        // 9. 专项练习
+                        click(document.querySelector('.tab[data-view="custom"]'));
+                        step(function () {
+                          log('custom-config-panel', !!document.querySelector('.cfg'));
+                          log('custom-start-disabled-init', document.querySelector('[data-cstart]').disabled === true);
+                          log('custom-7-type-btns', document.querySelectorAll('.ctype').length === 7);
+                          // 勾选第一个题型
+                          click(document.querySelector('.ctype[data-ctype="limit"]'));
+                          step(function () {
+                            click(document.querySelector('.ctype[data-ctype="indint"]'));
+                            step(function () {
+                              var st4 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                              log('custom-types-saved', JSON.stringify(st4.custom.settings.typeIds.slice().sort()) === JSON.stringify(['indint', 'limit']), st4.custom.settings.typeIds.join(','));
+                              log('custom-start-enabled', document.querySelector('[data-cstart]').disabled === false);
+                              // 选难度：基础
+                              click(document.querySelector('.seg[data-cdiff="easy"]'));
+                              step(function () {
+                                click(document.querySelector('.seg[data-ccount="5"]'));
+                                step(function () {
+                                  var st5 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                  log('custom-diff-count-saved', st5.custom.settings.difficulty === 'easy' && st5.custom.settings.count === 5, st5.custom.settings.difficulty + '/' + st5.custom.settings.count);
+                                  // 开始练习
+                                  click(document.querySelector('[data-cstart]'));
+                                  step(function () {
+                                    var st6 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                    var cset = st6.custom.set;
+                                    log('custom-set-5', !!cset && cset.questions.length === 5, cset ? String(cset.questions.length) : 'none');
+                                    log('custom-only-selected-types', !!cset && cset.questions.every(function (q) { return q.typeId === 'limit' || q.typeId === 'indint'; }));
+                                    log('custom-all-easy', !!cset && cset.questions.every(function (q) { return q.difficulty === 'easy'; }));
+                                    log('custom-card-shown', !!document.querySelector('.qcard'));
+                                    // 答题 + 提交
+                                    click(document.querySelectorAll('.opt')[0]);
+                                    step(function () {
+                                      click(document.querySelector('[data-submit]'));
+                                      step(function () {
+                                        log('custom-feedback-shown', !!document.querySelector('.qc-feedback'));
+                                        log('custom-solution-shown', !!document.querySelector('.qc-solution'));
+                                        // 标记已掌握
+                                        click(document.querySelector('.mark-btn[data-mark="mastered"]'));
+                                        step(function () {
+                                          var st7 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                          var hist = st7.history;
+                                          var lastH = hist[hist.length - 1];
+                                          log('custom-history-source', !!lastH && lastH.source === 'custom', lastH && lastH.source);
+                                          log('custom-mark-mastered-type', st7.types[cset.questions[0].typeId] && st7.types[cset.questions[0].typeId].status === 'mastered');
+                                          // 重新选题 → 回配置面板
+                                          click(document.querySelector('[data-crestart]'));
+                                          step(function () {
+                                            log('custom-restart-back-config', !!document.querySelector('.cfg'));
+                                            var st8 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                            log('custom-set-cleared', st8.custom.set === null);
+                                            // 学习记录里出现"专项"来源标签
+                                            click(document.querySelector('.tab[data-view="records"]'));
+                                            step(function () {
+                                              var srcs = Array.prototype.map.call(document.querySelectorAll('.h-src'), function (el) { return el.textContent; });
+                                              log('records-shows-custom-src', srcs.indexOf('专项') >= 0, srcs.join(','));
+                                              finish();
+                                            }, 150);
+                                          }, 150);
+                                        }, 150);
+                                      }, 150);
+                                    }, 150);
+                                  }, 150);
+                                }, 150);
+                              }, 150);
+                            }, 150);
+                          }, 150);
+                        }, 150);
+                      }, 120);
+                    }, 120);
+                  }, 120);
+                }, 120);
+              }, 120);
+            }, 120);
+          }, 120);
+        }, 120);
+      }, 120);
+    } catch (e) {
+      log('exception', false, e.message);
+      finish();
+    }
+  }
+
+</script>
+</body>
+</html>
