@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OFFLINE</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-theme="light">
+<header class="topbar">
+  <div class="brand"><span class="logo">∫</span><div class="brand-txt"><div class="brand-name">高数刷题营</div><div class="brand-sub">离线兜底自测（无 KaTeX）</div></div></div>
+  <button id="themeBtn" class="icon-btn">🌙</button>
+</header>
+<nav class="tabs" id="tabs"></nav>
+<main id="app"></main>
+<footer class="foot"><button id="resetBtn" class="foot-btn">重置全部数据</button></footer>
+<div id="result" style="display:none">PENDING</div>
+
+<script src="../js/katex-fallback.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/qb-limit.js"></script>
+<script src="../js/qb-derivative.js"></script>
+<script src="../js/qb-app.js"></script>
+<script src="../js/qb-integral.js"></script>
+<script src="../js/qb-extra.js"></script>
+<script src="../js/scheduler.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/app.js"></script>
+<script>
+var results = [];
+function log(name, ok, extra) { results.push((ok ? 'PASS' : 'FAIL') + ' ' + name + (extra ? ' | ' + extra : '')); }
+function finish() {
+  document.getElementById('result').textContent = 'RESULTS::' + results.join(';;');
+  document.title = 'OFFLINE-DONE';
+}
+document.addEventListener('DOMContentLoaded', function () {
+  window.__initApp();
+  setTimeout(function () {
+    try {
+      log('no-katex-global', typeof window.katex === 'undefined');
+      var fb = document.querySelectorAll('.fb').length;
+      log('fallback-rendered', fb > 0, 'fb=' + fb);
+      var q = document.querySelector('.qc-question');
+      log('question-readable', q && q.textContent.trim().length > 5, q ? q.textContent.trim().slice(0, 60) : '');
+      var opt = document.querySelector('.opt-body');
+      log('option-readable', opt && opt.textContent.trim().length > 1, opt ? opt.textContent.trim().slice(0, 40) : '');
+      var raw = document.querySelector('.qc-question').textContent;
+      log('no-raw-braces', raw.indexOf('{') < 0, raw.slice(0, 80));
+      finish();
+    } catch (e) { log('exception', false, e.message); finish(); }
+  }, 900);
+});
+setTimeout(finish, 15000);
+</script>
+</body>
+</html>
