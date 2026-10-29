@@ -335,6 +335,28 @@ body {
   border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; white-space: nowrap;
 }
 
+/* ---------- 错题本勾选重做 ---------- */
+.mark-corrected { --tc: #22c55e; }
+.wselect-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 16px; }
+.wsel-info { font-size: 13px; color: var(--muted); margin-right: auto; }
+.wsel-info b { color: var(--brand); }
+.wcheck { display: inline-flex; align-items: center; cursor: pointer; flex: 0 0 auto; }
+.wcheck input { display: none; }
+.wcheck-box {
+  width: 22px; height: 22px; border-radius: 7px;
+  border: 2px solid var(--line); background: var(--card);
+  display: inline-block; position: relative; transition: all .15s;
+}
+.wcheck input:checked + .wcheck-box {
+  border-color: var(--brand); background: var(--brand);
+}
+.wcheck input:checked + .wcheck-box::after {
+  content: '✓'; position: absolute; inset: 0;
+  color: #fff; font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.wcard-sel { border-color: var(--brand); background: var(--brand-soft); }
+
 /* ---------- 页脚 ---------- */
 .foot { max-width: 860px; margin: 0 auto; padding: 10px 16px 30px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .foot-btn { border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 8px; padding: 4px 12px; font-size: 12px; cursor: pointer; }
