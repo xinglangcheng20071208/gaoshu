@@ -15,6 +15,7 @@ require('../js/qb-derivative.js');
 require('../js/qb-app.js');
 require('../js/qb-integral.js');
 require('../js/qb-extra.js');
+require('../js/qb-more.js');
 const S = require('../js/scheduler.js');
 
 /* ---------- 独立的小工具（与 core.js 分开实现） ---------- */
@@ -115,7 +116,31 @@ const V = {
   'ode-O6': q => (q.params.b === 2 ? '1' : '\\frac{3}{2}') + '+Ce^{-2x}',
   'ode-O7': q => q.params.y0 + 'e^{' + q.params.k + 'x}',
   'ode-O8': () => 'C_1x+C_2',
-  'ode-O9': q => (q.params.a === 2 ? '' : '2') + 'x^2+x'
+  'ode-O9': q => (q.params.a === 2 ? '' : '2') + 'x^2+x',
+
+  /* ---- 扩充模板 ---- */
+  'limit-L14': q => frac(q.params.a, q.params.b),
+  'limit-L15': () => '0',
+  'limit-L16': q => frac(q.params.a, q.params.b),
+  'limit-L17': q => 'e^{' + (2 * q.params.k) + '}',
+  'derivative-D13': q => 'e^{' + q.params.k + 'x}(' + q.params.k + '\\sin x+\\cos x)',
+  'derivative-D14': q => '\\frac{' + q.params.k + '}{1+' + (q.params.k * q.params.k) + 'x^2}',
+  'derivative-D15': q => String(Math.pow(2, q.params.n)),
+  'indint-I13': q => '\\frac{' + q.params.a + 'x^{' + (q.params.n + 1) + '}}{' + (q.params.n + 1) + '}+C',
+  'indint-I14': q => '\\frac{1}{3}\\ln(x^3+' + q.params.a + ')+C',
+  'indint-I15': q => '\\frac{e^{' + q.params.k + 'x}(' + q.params.k + 'x-1)}{' + (q.params.k * q.params.k) + '}+C',
+  'indint-I16': q => '\\frac{\\sin^2(' + q.params.a + 'x)}{' + (2 * q.params.a) + '}+C',
+  'defint-Df11': () => '1',
+  'defint-Df12': () => '1',
+  'defint-Df13': q => frac(q.params.k * q.params.a * q.params.a * q.params.a, 3),
+  'defint-Df14': () => '\\frac{1}{2}\\ln 2',
+  'mvt-A7': q => '(-' + q.params.a + ',' + q.params.a + ')',
+  'mvt-A8': () => '0',
+  'defapp-Ap9': () => '1',
+  'defapp-Ap10': () => 'e-1',
+  'ode-O10': () => 'x^3+C_1x+C_2',
+  'ode-O11': () => '\\frac{e^{x}}{2}+Ce^{-x}',
+  'ode-O12': q => q.params.a === 1 ? '\\sin x' : '\\sin x' + signed(q.params.a - 1)
 };
 
 /* ---------- 测试 1：模板大规模生成 + 独立答案验证 ---------- */
@@ -260,6 +285,46 @@ check(Object.keys(c3.used).length === 7, '未选题型时应默认覆盖全部�
 const c4 = S.buildCustom({ typeIds: ['defapp'], difficulty: 'mixed', count: 8, rng: QB.mulberry32(37) });
 check(c4.questions.every(q => q.typeId === 'defapp'), '单选题型专项应全部为该题型');
 
+/* ---------- 测试 7：举一反三去重 ---------- */
+console.log('\n--- 举一反三去重 ---');
+// 7.1 生成器 avoid：避开指定原题标签后，生成的一定不是原题
+let avoidOk = true;
+for (const tpl of QB.templates) {
+  const rng0 = QB.mulberry32(555);
+  const q0 = tpl.gen(rng0);
+  q0.qid = 'x'; q0.tpl = tpl.id; q0.typeId = tpl.type;
+  q0.sig = QB.sigOf(tpl.id, q0.params);
+  for (let i = 0; i < 8; i++) {
+    const qv = QB.generate({ typeId: tpl.type, difficulty: tpl.difficulty, rng: QB.mulberry32(600 + i * 97), avoid: [q0.sig] });
+    if (qv.sig === q0.sig) { avoidOk = false; fails.push(tpl.id + ' avoid 后仍生成原题 ' + q0.sig); break; }
+  }
+}
+check(avoidOk, '全部模板 avoid 原题标签后都能生成不同变式题');
+
+// 7.2 每日组卷：本套内题目标签不重复
+const setDaily = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(88) });
+check(new Set(setDaily.questions.map(q => q.sig)).size === 10, '每日10题本套内不应有原题重复');
+
+// 7.3 每日组卷：avoidMap 上次标签 → 该题型新题与上次不同
+const avoidMapT = {};
+Object.keys(setDaily.lastSigs).forEach(t => { avoidMapT[t] = [setDaily.lastSigs[t]]; });
+const setNext = S.buildDaily({ typesState: {}, today: d1, difficulty: 'medium', count: 10, rng: QB.mulberry32(99), avoidMap: avoidMapT });
+let crossDayOk = true;
+Object.keys(setNext.lastSigs).forEach(t => {
+  if (avoidMapT[t] && setNext.lastSigs[t] === avoidMapT[t][0]) {
+    crossDayOk = false;
+    fails.push(t + ' 跨天仍重复上次原题 ' + avoidMapT[t][0]);
+  }
+});
+check(crossDayOk, '跨天组卷避免与上次原题重复');
+
+// 7.4 错题重做场景：从错题标签生成变式，题型一致但题目不同
+const wrongQ = setDaily.questions[0];
+const redoQ = QB.generate({ typeId: wrongQ.typeId, difficulty: wrongQ.difficulty, rng: QB.mulberry32(77), avoid: [wrongQ.sig] });
+check(redoQ.typeId === wrongQ.typeId, '错题变式题型应与原错题一致');
+check(redoQ.sig !== wrongQ.sig, '错题变式不应是原题');
+check(redoQ.question !== wrongQ.question, '错题变式题目文本应与原题不同');
+
 /* ---------- 汇总 ---------- */
 console.log('\n========== 测试汇总 ==========');
 console.log('总检查项：' + checks);
@@ -270,5 +335,5 @@ if (fails.length) {
   if (fails.length > 50) console.log('  …还有 ' + (fails.length - 50) + ' 条');
   process.exit(1);
 } else {
-  console.log('✅ 全部通过：77 个模板答案正确率 100%，选项唯一，难度覆盖完整，调度规则符合预期');
+  console.log('✅ 全部通过：' + QB.templates.length + ' 个模板答案正确率 100%，选项唯一，难度覆盖完整，调度与举一反三去重符合预期');
 }
