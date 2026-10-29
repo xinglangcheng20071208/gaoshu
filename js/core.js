@@ -94,10 +94,17 @@
     return { options: opts, answerIndex: idx, answer: correct };
   }
 
+  // 题目标签：同模板 + 同参数 = 同一道题；用于"举一反三"去重
+  function sigOf(tplId, params) {
+    return tplId + '|' + JSON.stringify(params || {});
+  }
+
   // 生成一道题：typeId + difficulty；该难度无模板时就近取其它难度
+  // opts.avoid: 题目标签数组，生成的题自动避开这些"原题"（换模板或换参数）
   function generate(opts) {
     opts = opts || {};
     var rng = opts.rng || Math.random;
+    var avoid = opts.avoid || [];
     var pool = templatesOf(opts.typeId, opts.difficulty);
     if (!pool.length) {
       var order = ['easy', 'medium', 'hard'];
@@ -108,12 +115,18 @@
       }
     }
     if (!pool.length) pool = templatesOf(opts.typeId);
-    var tpl = pick(pool, rng);
-    var q = tpl.gen(rng);
+    var q = null, sig = null, attempts = 0;
+    do {
+      var tpl = pick(pool, rng);
+      q = tpl.gen(rng);
+      sig = sigOf(tpl.id, q.params);
+      attempts++;
+    } while (attempts < 15 && avoid.indexOf(sig) >= 0);
     q.qid = uid();
     q.tpl = tpl.id;
     q.typeId = tpl.type;
     q.difficulty = q.difficulty || tpl.difficulty;
+    q.sig = sig;
     return q;
   }
 
@@ -126,6 +139,7 @@
     templatesOf: templatesOf,
     generate: generate,
     buildOptions: buildOptions,
+    sigOf: sigOf,
     gcd: gcd, frac: frac, signed: signed, num: num,
     ri: ri, pick: pick, mulberry32: mulberry32, uid: uid
   };
