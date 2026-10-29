@@ -25,6 +25,7 @@
       types: {},
       daily: {},
       custom: { settings: { typeIds: [], difficulty: 'mixed', count: 10 }, set: null },
+      redo: null,   // 错题重做会话 { questions:[], answers:{}, sourceIds:[] }
       history: [],
       wrongbook: []
     };
@@ -42,6 +43,7 @@
       if (!s.daily) s.daily = {};
       if (!s.custom) s.custom = { settings: { typeIds: [], difficulty: 'mixed', count: 10 }, set: null };
       if (!s.custom.settings) s.custom.settings = { typeIds: [], difficulty: 'mixed', count: 10 };
+      if (s.redo === undefined) s.redo = null;
       if (!s.history) s.history = [];
       if (!s.wrongbook) s.wrongbook = [];
       return s;
