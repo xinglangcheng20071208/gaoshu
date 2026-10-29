@@ -97,6 +97,9 @@
 
     var questions = [];
     var used = {};
+    var usedSigs = [];                 // 本套内已出现题目标签（避免同套出重题）
+    var lastSigs = {};                 // 每题型最后一道题的标签（用于下次避免原题重复）
+    var avoidMap = opts.avoidMap || {}; // typeId -> [上次的题目标签]
     var qi = 0;
     var guard = 0;
     while (questions.length < count && guard < 200) {
@@ -104,14 +107,19 @@
       var typeId = order[qi % order.length];
       qi++;
       used[typeId] = (used[typeId] || 0) + 1;
-      var q = QB.generate({ typeId: typeId, difficulty: difficulty, rng: rng });
+      var q = QB.generate({
+        typeId: typeId, difficulty: difficulty, rng: rng,
+        avoid: (avoidMap[typeId] || []).concat(usedSigs)
+      });
+      usedSigs.push(q.sig);
+      lastSigs[typeId] = q.sig;
       q.dailyIndex = questions.length + 1;
       var dueItem = null;
       for (var i = 0; i < due.length; i++) { if (due[i].typeId === typeId) { dueItem = due[i]; break; } }
       q.dueReason = dueItem ? dueItem.reason : '补充练习';
       questions.push(q);
     }
-    return { date: today, questions: questions, used: used, due: due };
+    return { date: today, questions: questions, used: used, due: due, lastSigs: lastSigs };
   }
 
   // 专项练习组卷：仅从指定题型出题；difficulty 为 'mixed' 时各难度随机
@@ -123,18 +131,26 @@
     var order = typeIds.length ? typeIds.slice() : Object.keys(QB.types);
     var questions = [];
     var used = {};
+    var usedSigs = [];
+    var lastSigs = {};
+    var avoidMap = opts.avoidMap || {};
     var qi = 0, guard = 0;
     while (questions.length < count && guard < 300) {
       guard++;
       var typeId = order[qi % order.length];
       qi++;
       used[typeId] = (used[typeId] || 0) + 1;
-      var q = QB.generate({ typeId: typeId, difficulty: difficulty === 'mixed' ? null : difficulty, rng: rng });
+      var q = QB.generate({
+        typeId: typeId, difficulty: difficulty === 'mixed' ? null : difficulty, rng: rng,
+        avoid: (avoidMap[typeId] || []).concat(usedSigs)
+      });
+      usedSigs.push(q.sig);
+      lastSigs[typeId] = q.sig;
       q.dailyIndex = questions.length + 1;
       q.dueReason = '专项练习';
       questions.push(q);
     }
-    return { questions: questions, used: used };
+    return { questions: questions, used: used, lastSigs: lastSigs };
   }
 
   // 某题型下次到期日期（用于 UI 展示；null 表示无计划）
