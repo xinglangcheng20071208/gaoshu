@@ -10,8 +10,10 @@
   var view = 'daily';
   var curIdx = 0;                 // 今日练习当前第几题（0-based）
   var customIdx = 0;              // 专项练习当前第几题
+  var redoIdx = 0;                // 错题重做当前第几题
   var wrongFilter = 'all';        // 错题本筛选
   var expanded = {};              // 错题本展开状态
+  var redoSelect = {};            // 错题本勾选待重做的题 {entryId: true}
 
   var MARK_META = {
     mastered:     { name: '已掌握', icon: '✓', cls: 'mark-mastered', hint: '7 天后出类似题目', pri: 1 },
@@ -95,9 +97,14 @@
   function ensureDaily() {
     var d = state.daily[today];
     if (!d || d.difficulty !== state.settings.difficulty) {
+      // 举一反三：避开每个题型上一次做过的原题（同模板同参数）
+      var avoidMap = {};
+      Object.keys(state.types).forEach(function (t) {
+        if (state.types[t] && state.types[t].lastSig) avoidMap[t] = [state.types[t].lastSig];
+      });
       d = S.buildDaily({
         typesState: state.types, today: today,
-        difficulty: state.settings.difficulty, count: 10
+        difficulty: state.settings.difficulty, count: 10, avoidMap: avoidMap
       });
       d.difficulty = state.settings.difficulty; // 关键：给套装盖章难度，避免每次误判重建
       d.answers = {};
@@ -105,21 +112,39 @@
       Object.keys(d.used).forEach(function (t) {
         state.types[t] = S.afterShow(state.types[t], today);
       });
+      Object.keys(d.lastSigs).forEach(function (t) {
+        state.types[t] = state.types[t] || {};
+        state.types[t].lastSig = d.lastSigs[t];
+      });
       save();
     }
     if (!d.answers) d.answers = {};
     return d;
   }
 
-  // 当前活动套题容器：专项练习视图用专项套，其余视图用今日套
+  // 是否处于错题重做会话
+  function inRedo() {
+    return view === 'wrong' && state.redo && state.redo.questions && state.redo.questions.length > 0;
+  }
+
+  // 当前活动套题容器：错题重做会话 / 专项套 / 今日套
   function curContainer() {
+    if (inRedo()) return state.redo;
     if (view === 'custom' && state.custom && state.custom.set) return state.custom.set;
     return ensureDaily();
   }
-  function curIndex() { return view === 'custom' ? customIdx : curIdx; }
-  function setCurIndex(i) { if (view === 'custom') customIdx = i; else curIdx = i; }
-  function curSource() { return view === 'custom' ? 'custom' : 'daily'; }
-  function renderCurrentPractice() { if (view === 'custom') renderCustom(); else renderDaily(); }
+  function curIndex() { return inRedo() ? redoIdx : (view === 'custom' ? customIdx : curIdx); }
+  function setCurIndex(i) {
+    if (inRedo()) redoIdx = i;
+    else if (view === 'custom') customIdx = i;
+    else curIdx = i;
+  }
+  function curSource() { return inRedo() ? 'redo' : (view === 'custom' ? 'custom' : 'daily'); }
+  function renderCurrentPractice() {
+    if (inRedo()) renderRedoPractice();
+    else if (view === 'custom') renderCustom();
+    else renderDaily();
+  }
 
   function findWrong(qid) {
     for (var i = 0; i < state.wrongbook.length; i++) {
@@ -135,12 +160,16 @@
     var pri = MARK_META[mark] ? MARK_META[mark].pri : 0;
     if (e) {
       if ((MARK_META[e.mark] ? MARK_META[e.mark].pri : 0) <= pri) e.mark = mark;
+      // 补记题目签名（老数据没有），供"举一反三"重做使用
+      if (!e.sig && q.sig) e.sig = q.sig;
+      if (!e.tpl && q.tpl) e.tpl = q.tpl;
       return;
     }
     state.wrongbook.push({
       id: q.qid, date: today, typeId: q.typeId, difficulty: q.difficulty,
       question: q.question, options: q.options, answerIndex: q.answerIndex,
-      answer: q.answer, idea: q.idea, steps: q.steps, pitfall: q.pitfall, mark: mark
+      answer: q.answer, idea: q.idea, steps: q.steps, pitfall: q.pitfall,
+      mark: mark, sig: q.sig, tpl: q.tpl
     });
   }
 
@@ -181,6 +210,13 @@
     if (a.correct) {
       var e = findWrong(q.qid);
       if (e && e.mark === 'wrong') removeWrong(q.qid);
+      // 错题重做：做对的题在错题本中打"已订正"标记（保留在错题本里）
+      if (source === 'redo' && container.sourceIds) {
+        var qi = container.questions.indexOf(q);
+        var srcId = container.sourceIds[qi];
+        var se = findWrong(srcId);
+        if (se) se.corrected = true;
+      }
     } else {
       upsertWrong(q, a.mark || 'wrong');
     }
@@ -432,25 +468,39 @@
 
   /* ---------- 错题本 ---------- */
   function renderWrong() {
+    if (inRedo()) { renderRedoPractice(); return; }
     var items = state.wrongbook.slice().reverse();
     var filters = ['all', 'not_mastered', 'wobbly', 'wrong'].map(function (f) {
       var name = { all: '全部', not_mastered: '未掌握', wobbly: '不熟练', wrong: '答错' }[f];
       return '<button class="seg' + (wrongFilter === f ? ' active' : '') + '" data-wf="' + f + '">' + name + '</button>';
     }).join('');
 
+    var selCount = Object.keys(redoSelect).length;
+
     var html = '<div class="wrong-head card"><div class="wh-title">📕 错题本</div>' +
-      '<div class="wh-desc">这里收集你标记为 <b>不熟练</b>、<b>未掌握</b> 的题，以及<b>答错</b>的题。标记「已掌握」后会自动移出。</div>' +
+      '<div class="wh-desc">勾选题后点「重做所选」，会按<b>同样的题型换数字</b>出"举一反三"新题（绝不原题重复）；重做<b>做对</b>的题会盖上 ✅已订正 标记，仍保留在这里。</div>' +
       '<div class="segs">' + filters + '</div></div>';
 
     var shown = items.filter(function (e) { return wrongFilter === 'all' || e.mark === wrongFilter; });
     if (!shown.length) {
       html += '<div class="empty card">🎈 还没有错题。答错或标记「不熟练/未掌握」的题会自动出现在这里。</div>';
     } else {
+      // 选择工具条
+      html += '<div class="wselect-bar card">' +
+        '<button class="btn small ghost" data-wselectall>' + (selCount === shown.length && shown.length ? '取消全选' : '全选') + '</button>' +
+        '<span class="wsel-info">已选 <b>' + selCount + '</b> 题</span>' +
+        '<button class="btn small" data-wredo ' + (selCount ? '' : 'disabled') + '>🔄 重做所选（举一反三）</button>' +
+        '</div>';
+
       html += shown.map(function (e) {
         var m = QB.types[e.typeId];
         var isOpen = expanded[e.id];
-        return '<div class="wcard card">' +
-          '<div class="wc-head">' + typeBadge(e.typeId) + diffBadge(e.difficulty) + markBadge(e.mark) +
+        var checked = !!redoSelect[e.id];
+        return '<div class="wcard card' + (checked ? ' wcard-sel' : '') + '">' +
+          '<div class="wc-head">' +
+          '<label class="wcheck"><input type="checkbox" data-wcheck="' + e.id + '" ' + (checked ? 'checked' : '') + '><span class="wcheck-box"></span></label>' +
+          typeBadge(e.typeId) + diffBadge(e.difficulty) + markBadge(e.mark) +
+          (e.corrected ? '<span class="tag mark-corrected">✅ 已订正</span>' : '') +
           '<span class="wc-date">' + e.date + '</span></div>' +
           '<div class="wc-q">' + mathHtml(e.question, true) + '</div>' +
           '<div class="wc-a">答案：' + mathHtml(e.answer, true) + '</div>' +
@@ -466,6 +516,41 @@
           '<button class="btn small ghost" data-wdel="' + e.id + '">移除</button>' +
           '</div></div>';
       }).join('');
+    }
+    $('#app').innerHTML = html;
+    renderMathIn($('#app'));
+  }
+
+  /* ---------- 错题重做会话（举一反三） ---------- */
+  function renderRedoPractice() {
+    var set = state.redo;
+    var answered = Object.keys(set.answers).filter(function (qid) {
+      return set.answers[qid].submitted === true;
+    }).length;
+    var allDone = answered >= set.questions.length;
+    var correctedCount = 0;
+    set.sourceIds.forEach(function (sid) {
+      var se = findWrong(sid);
+      if (se && se.corrected) correctedCount++;
+    });
+
+    var html = '<div class="daily-meta card">';
+    html += '<div class="dm-row1"><span class="dm-date">🔄 错题重做 · 举一反三</span>' +
+      '<button class="btn small ghost" data-redoexit>返回错题本</button></div>';
+    html += '<div class="dm-row2"><span class="dm-prog">已做 <b>' + answered + '</b>/' + set.questions.length + ' · 已订正 <b>' + correctedCount + '</b></span>' +
+      '<div class="pbar"><div class="pbar-in" style="width:' + Math.round(answered / set.questions.length * 100) + '%"></div></div></div>';
+    html += '<div class="dm-row3"><span class="dm-plan">出题规则</span><div class="dm-chips">' +
+      '<span class="chip" style="--tc:#6366f1">同题型 · 换数字 · 非原题</span></div></div>';
+    html += '</div>';
+
+    if (allDone) {
+      html += renderSummary(set, {
+        title: '🔄 错题重做完成',
+        extraBtns: '<button class="btn ghost" data-redoexit>返回错题本</button>'
+      });
+    } else {
+      html += renderQuestionCard(set, redoIdx);
+      html += renderNav(set, redoIdx);
     }
     $('#app').innerHTML = html;
     renderMathIn($('#app'));
@@ -525,7 +610,7 @@
       html += '<div class="hist-list">' + hist.slice(0, 50).map(function (h) {
         return '<div class="hist-item">' +
           '<span class="h-date">' + h.date + '</span>' +
-          '<span class="h-src">' + (h.source === 'custom' ? '专项' : '每日') + '</span>' +
+          '<span class="h-src">' + (h.source === 'custom' ? '专项' : (h.source === 'redo' ? '错题重做' : '每日')) + '</span>' +
           '<span class="h-type" style="--tc:' + QB.types[h.typeId].color + '">' + esc(QB.types[h.typeId].short) + '</span>' +
           '<span class="h-diff" style="--tc:' + QB.difficulties[h.difficulty].color + '">' + esc(QB.difficulties[h.difficulty].name) + '</span>' +
           '<span class="h-q">' + mathHtml(h.question, false) + '</span>' +
@@ -634,8 +719,16 @@
       if (cst && !cst.disabled) {
         var cs2 = state.custom.settings;
         if (cs2.typeIds.length) {
-          var built = S.buildCustom({ typeIds: cs2.typeIds, difficulty: cs2.difficulty, count: cs2.count });
+          var avoidMap2 = {};
+          cs2.typeIds.forEach(function (tt) {
+            if (state.types[tt] && state.types[tt].lastSig) avoidMap2[tt] = [state.types[tt].lastSig];
+          });
+          var built = S.buildCustom({ typeIds: cs2.typeIds, difficulty: cs2.difficulty, count: cs2.count, avoidMap: avoidMap2 });
           state.custom.set = { date: today, questions: built.questions, answers: {} };
+          Object.keys(built.lastSigs).forEach(function (tt) {
+            state.types[tt] = state.types[tt] || {};
+            state.types[tt].lastSig = built.lastSigs[tt];
+          });
           customIdx = 0;
           save();
           renderCustom();
@@ -721,6 +814,7 @@
         if (e2) {
           state.types[e2.typeId] = S.applyMark(state.types[e2.typeId], 'mastered', today);
           removeWrong(id2);
+          delete redoSelect[id2];
           save();
           renderWrong();
         }
@@ -728,7 +822,67 @@
       }
       var wd = t.closest('[data-wdel]');
       if (wd) {
-        removeWrong(wd.getAttribute('data-wdel'));
+        var did = wd.getAttribute('data-wdel');
+        removeWrong(did);
+        delete redoSelect[did];
+        save();
+        renderWrong();
+        return;
+      }
+      // 勾选错题（准备重做）
+      var wck = t.closest('[data-wcheck]');
+      if (wck) {
+        var cid = wck.getAttribute('data-wcheck');
+        if (wck.checked) redoSelect[cid] = true; else delete redoSelect[cid];
+        renderWrong();
+        return;
+      }
+      // 全选/取消全选（当前筛选范围内）
+      var wsa = t.closest('[data-wselectall]');
+      if (wsa) {
+        var shownIds = state.wrongbook.filter(function (e) {
+          return wrongFilter === 'all' || e.mark === wrongFilter;
+        }).map(function (e) { return e.id; });
+        var allOn = shownIds.length && shownIds.every(function (i) { return redoSelect[i]; });
+        if (allOn) {
+          shownIds.forEach(function (i) { delete redoSelect[i]; });
+        } else {
+          shownIds.forEach(function (i) { redoSelect[i] = true; });
+        }
+        renderWrong();
+        return;
+      }
+      // 开始重做：按原题题型换参数生成"举一反三"新题
+      var wrd = t.closest('[data-wredo]');
+      if (wrd && !wrd.disabled) {
+        var selIds = Object.keys(redoSelect).filter(function (i) { return redoSelect[i]; });
+        if (selIds.length) {
+          var redoQs = [];
+          var redoSrc = [];
+          selIds.forEach(function (sid) {
+            var entry = findWrong(sid);
+            if (!entry) return;
+            var q = QB.generate({
+              typeId: entry.typeId,
+              difficulty: entry.difficulty,
+              avoid: entry.sig ? [entry.sig] : []
+            });
+            q.dueReason = '错题变式';
+            redoQs.push(q);
+            redoSrc.push(sid);
+          });
+          state.redo = { questions: redoQs, answers: {}, sourceIds: redoSrc };
+          redoIdx = 0;
+          save();
+          renderRedoPractice();
+        }
+        return;
+      }
+      // 退出重做会话
+      var rex = t.closest('[data-redoexit]');
+      if (rex) {
+        state.redo = null;
+        redoIdx = 0;
         save();
         renderWrong();
         return;
