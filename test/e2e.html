@@ -187,7 +187,82 @@ function go() {
                                             step(function () {
                                               var srcs = Array.prototype.map.call(document.querySelectorAll('.h-src'), function (el) { return el.textContent; });
                                               log('records-shows-custom-src', srcs.indexOf('专项') >= 0, srcs.join(','));
-                                              finish();
+
+                                              // 10. 制造一道错题：今日练习第 2 题选错并标记未掌握
+                                              click(document.querySelector('.tab[data-view="daily"]'));
+                                              step(function () {
+                                                click(document.querySelector('.dot[data-go="1"]'));
+                                                step(function () {
+                                                  var stD = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                  var dk = Object.keys(stD.daily)[0];
+                                                  var dq = stD.daily[dk].questions[1];
+                                                  var wrongPick = (dq.answerIndex + 1) % 4;
+                                                  var domQidBefore = document.querySelector('.opt').getAttribute('data-qid');
+                                                  log('dom-vs-dq-before-pick', domQidBefore === dq.qid, 'dom=' + domQidBefore + ' dq=' + dq.qid + ' dqT=' + dq.typeId + '/' + dq.tpl);
+                                                  click(document.querySelectorAll('.opt')[wrongPick]);
+                                                  step(function () {
+                                                    var stA = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                    var dkA = Object.keys(stA.daily)[0];
+                                                    log('pick-chosen-saved', stA.daily[dkA].answers[dq.qid] && stA.daily[dkA].answers[dq.qid].chosen !== undefined, JSON.stringify(stA.daily[dkA].answers[dq.qid]));
+                                                    click(document.querySelector('[data-submit]'));
+                                                    step(function () {
+                                                      var domQidAfter = document.querySelector('.qc-question') ? 'card' : 'no-card';
+                                                      log('dom-after-submit', true, domQidAfter);
+                                                      var stB = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                      var dkB = Object.keys(stB.daily)[0];
+                                                      log('submit-recorded', stB.daily[dkB].answers[dq.qid] && stB.daily[dkB].answers[dq.qid].submitted === true, 'wb=' + stB.wrongbook.length);
+                                                      click(document.querySelector('.mark-btn[data-mark="not_mastered"]'));
+                                                      step(function () {
+                                                        var stW = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                        var entry = stW.wrongbook[stW.wrongbook.length - 1];
+                                                        log('wrong-entry-created', !!entry && entry.id === dq.qid, 'entry=' + (entry && entry.id) + ' dq=' + dq.qid + ' mark=' + (entry && entry.mark));
+                                                        log('wrong-entry-has-sig', !!entry && !!entry.sig, entry && entry.sig);
+
+                                                        // 11. 错题本：勾选重做（举一反三）
+                                                        click(document.querySelector('.tab[data-view="wrong"]'));
+                                                        step(function () {
+                                                          log('wrong-checkbox-shown', !!document.querySelector('.wcheck'));
+                                                          click(document.querySelector('[data-wcheck]'));
+                                                          step(function () {
+                                                            log('wrong-card-selected', !!document.querySelector('.wcard-sel'));
+                                                            click(document.querySelector('[data-wredo]'));
+                                                            step(function () {
+                                                              var stR = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                              var redo = stR.redo;
+                                                              var rq = redo && redo.questions[0];
+                                                              log('redo-session-1q', !!redo && redo.questions.length === 1);
+                                                              log('redo-same-type', !!rq && rq.typeId === entry.typeId, (rq && rq.typeId) + '/' + entry.typeId);
+                                                              log('redo-not-original', !!rq && rq.question !== entry.question && rq.sig !== entry.sig);
+                                                              log('redo-card-shown', !!document.querySelector('.qcard'));
+                                                              log('redo-exit-btn', !!document.querySelector('[data-redoexit]'));
+                                                              // 答对变式题
+                                                              var rightPick = rq.answerIndex;
+                                                              click(document.querySelectorAll('.opt')[rightPick]);
+                                                              step(function () {
+                                                                click(document.querySelector('[data-submit]'));
+                                                                step(function () {
+                                                                  var stC = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                                  var e2 = stC.wrongbook[stC.wrongbook.length - 1];
+                                                                  log('redo-corrected-flag', !!e2 && e2.corrected === true, e2 && String(e2.corrected));
+                                                                  var histC = stC.history[stC.history.length - 1];
+                                                                  log('redo-history-source', !!histC && histC.source === 'redo', histC && histC.source);
+                                                                  // 返回错题本：出现已订正标记
+                                                                  click(document.querySelector('[data-redoexit]'));
+                                                                  step(function () {
+                                                                    log('redo-exit-back-list', !!document.querySelector('.wcard'));
+                                                                    log('corrected-badge-shown', !!document.querySelector('.tag.mark-corrected'));
+                                                                    finish();
+                                                                  }, 150);
+                                                                }, 150);
+                                                              }, 150);
+                                                            }, 150);
+                                                          }, 150);
+                                                        }, 150);
+                                                      }, 150);
+                                                    }, 150);
+                                                  }, 150);
+                                                }, 150);
+                                              }, 150);
                                             }, 150);
                                           }, 150);
                                         }, 150);
