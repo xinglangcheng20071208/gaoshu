@@ -96,7 +96,9 @@
 
   function ensureDaily() {
     var d = state.daily[today];
-    if (!d || d.difficulty !== state.settings.difficulty) {
+    var sel = (state.settings.dailyTypes || []).slice().sort().join(',');
+    var curSel = d && d.typeIds ? d.typeIds : '';
+    if (!d || d.difficulty !== state.settings.difficulty || curSel !== sel) {
       // 举一反三：避开每个题型上一次做过的原题（同模板同参数）
       var avoidMap = {};
       Object.keys(state.types).forEach(function (t) {
@@ -104,9 +106,11 @@
       });
       d = S.buildDaily({
         typesState: state.types, today: today,
-        difficulty: state.settings.difficulty, count: 10, avoidMap: avoidMap
+        difficulty: state.settings.difficulty, count: 10, avoidMap: avoidMap,
+        typeIds: state.settings.dailyTypes || []
       });
       d.difficulty = state.settings.difficulty; // 关键：给套装盖章难度，避免每次误判重建
+      d.typeIds = sel;                          // 记录组卷所用题型，用于判断是否需要重建
       d.answers = {};
       state.daily[today] = d;
       Object.keys(d.used).forEach(function (t) {
@@ -223,6 +227,26 @@
     save();
   }
 
+  // 解答题/证明题：点击「已完成」→ 记录 + 标记已查看答案（不参与正确率统计）
+  function markSolved(container, q, source) {
+    var a = container.answers[q.qid] || (container.answers[q.qid] = {});
+    a.submitted = true;
+    a.revealed = true;
+    a.correct = null;
+    var h = {
+      ts: Date.now(), date: today, source: source || 'daily', kind: 'solve',
+      typeId: q.typeId, difficulty: q.difficulty,
+      tpl: q.tpl, qid: q.qid, question: q.question, answer: q.answer,
+      chosen: null, correct: null, mark: a.mark || ''
+    };
+    var found = false;
+    for (var i = state.history.length - 1; i >= 0; i--) {
+      if (state.history[i].qid === q.qid) { state.history[i] = h; found = true; break; }
+    }
+    if (!found) state.history.push(h);
+    save();
+  }
+
   /* ---------- 头部 / 导航 ---------- */
   function renderShell() {
     var tabs = [
@@ -268,10 +292,19 @@
       return '<button class="seg' + (state.settings.difficulty === dd ? ' active' : '') + '" data-diff="' + dd + '" style="--tc:' + m.color + '" title="' + esc(m.desc) + '">' + esc(m.name) + '</button>';
     }).join('');
 
+    var sel = state.settings.dailyTypes || [];
+    var typeChips = Object.keys(QB.types).map(function (t) {
+      var m = QB.types[t];
+      var on = sel.indexOf(t) >= 0;
+      return '<button class="seg' + (on ? ' active' : '') + '" data-dtype="' + t + '" style="--tc:' + m.color + '" title="' + esc(m.name) + '">' + esc(m.short) + '</button>';
+    }).join('');
+
     var html = '';
     html += '<div class="daily-meta card">';
     html += '<div class="dm-row1"><span class="dm-date">📅 ' + today + '</span><div class="dm-diff">难度：<span class="segs">' + diffs + '</span></div></div>';
     html += '<div class="dm-row2"><span class="dm-prog">今日进度 <b>' + answered + '</b>/' + d.questions.length + '</span><div class="pbar"><div class="pbar-in" style="width:' + Math.round(answered / d.questions.length * 100) + '%"></div></div></div>';
+    html += '<div class="dm-row3"><span class="dm-plan">自选题型</span><div class="dm-chips">' + typeChips +
+      '<button class="seg' + (sel.length === 0 ? ' active' : '') + '" data-dtype="" style="--tc:var(--muted)">全部</button></div></div>';
     html += '<div class="dm-row3"><span class="dm-plan">今日复习计划</span><div class="dm-chips">' + dueHtml + '</div></div>';
     html += '</div>';
 
@@ -288,20 +321,36 @@
   function renderSummary(d, opts) {
     opts = opts || {};
     var score = 0;
+    var choiceTotal = 0;
+    var solveTotal = 0;
+    var solveDone = 0;
     var marks = { mastered: 0, wobbly: 0, not_mastered: 0 };
     d.questions.forEach(function (q) {
       var a = d.answers[q.qid] || {};
-      if (a.correct) score++;
+      if (q.kind === 'solve') {
+        solveTotal++;
+        if (a.submitted === true) solveDone++;
+      } else {
+        choiceTotal++;
+        if (a.correct) score++;
+      }
       if (a.mark && marks[a.mark] !== undefined) marks[a.mark]++;
     });
-    var pct = Math.round(score / d.questions.length * 100);
-    var msg = pct === 100 ? '全对！太强了，明天的题会更有挑战 🌟'
+    var pct = choiceTotal ? Math.round(score / choiceTotal * 100) : 0;
+    var msg = choiceTotal === 0
+      ? '解答/证明题已完成，记得对照解析检查每步推理 📘'
+      : pct === 100 ? '选择题全对！太强了，明天的题会更有挑战 🌟'
       : pct >= 80 ? '很棒！错题已进错题本，记得看一眼解析 📘'
       : pct >= 60 ? '不错！把"未掌握"的题明天再来一轮 💪'
       : '别灰心！把每题解析看懂，明天同类题还会再出现 ✊';
     var html = '<div class="summary card">';
     html += '<h2>' + (opts.title || '练习完成') + '</h2>';
-    html += '<div class="score"><b>' + score + '</b><span>/' + d.questions.length + ' 正确率 ' + pct + '%</span></div>';
+    if (choiceTotal) {
+      html += '<div class="score"><b>' + score + '</b><span>/' + choiceTotal + ' 选择题正确率 ' + pct + '%</span></div>';
+    }
+    if (solveTotal) {
+      html += '<div class="sum-solve">📝 解答/证明题：已完成 <b>' + solveDone + '</b>/' + solveTotal + '</div>';
+    }
     html += '<p class="sum-msg">' + msg + '</p>';
     html += '<div class="sum-marks">' +
       '<span class="tag mark-mastered">✓ 已掌握 ×' + marks.mastered + ' <i>7 天后见</i></span>' +
@@ -310,10 +359,13 @@
       '</div>';
     html += '<div class="sum-list">' + d.questions.map(function (q) {
       var a = d.answers[q.qid] || {};
-      return '<div class="sum-item' + (a.correct ? ' ok' : ' no') + '" data-go="' + d.questions.indexOf(q) + '">' +
+      var isSolve = q.kind === 'solve';
+      var cls = isSolve ? (a.submitted ? ' done' : '') : (a.correct ? ' ok' : ' no');
+      var icon = isSolve ? (a.submitted ? '📝' : '·') : (a.correct ? '✓' : '✗');
+      return '<div class="sum-item' + cls + '" data-go="' + d.questions.indexOf(q) + '">' +
         '<span class="sum-no">' + (d.questions.indexOf(q) + 1) + '</span>' +
         '<span class="sum-type">' + esc(QB.types[q.typeId].short) + '</span>' +
-        '<span class="sum-icon">' + (a.correct ? '✓' : '✗') + '</span>' +
+        '<span class="sum-icon">' + icon + '</span>' +
         (a.mark ? '<span class="sum-mark">' + esc(MARK_META[a.mark].name) + '</span>' : '') +
         '</div>';
     }).join('') + '</div>';
@@ -322,10 +374,24 @@
     return html;
   }
 
+  // 选择题的解析块（思路/分步/易错点）
+  function solutionBlock(q) {
+    var html = '<div class="qc-solution">';
+    html += '<div class="sol-title">💡 解题思路与过程</div>';
+    html += '<div class="sol-idea">' + mathHtml(q.idea, false) + '</div>';
+    html += '<ol class="sol-steps">' + q.steps.map(function (st) {
+      return '<li><div class="sol-m">' + mathHtml(st.m, true) + '</div><div class="sol-t">' + mathHtml(st.t, false) + '</div></li>';
+    }).join('') + '</ol>';
+    html += '<div class="sol-pit">⚠️ 易错点：' + mathHtml(q.pitfall, false) + '</div>';
+    html += '</div>';
+    return html;
+  }
+
   function renderQuestionCard(d, idx) {
     var q = d.questions[idx];
     var a = d.answers[q.qid] || {};
     var answered = a.submitted === true;   // 只有点过"提交答案"才算已作答
+    var isSolve = q.kind === 'solve';      // 解答题/证明题
 
     // 三个状态标记（按需求放在题目上方）
     var marksHtml = '<div class="mark-row">' + ['mastered', 'wobbly', 'not_mastered'].map(function (mk) {
@@ -339,10 +405,26 @@
     html += '<div class="qc-head">' +
       '<span class="qc-no">第 ' + (idx + 1) + '/' + d.questions.length + ' 题</span>' +
       typeBadge(q.typeId) + diffBadge(q.difficulty) +
+      (isSolve ? '<span class="chip chip-solve">解答/证明题</span>' : '') +
       (q.tech ? '<span class="chip chip-tech" title="本题考察的方法">' + esc(q.tech) + '</span>' : '') +
       '<span class="chip chip-reason">' + esc(q.dueReason) + '</span></div>';
     html += marksHtml;
     html += '<div class="qc-question">' + mathHtml(q.question, true) + '</div>';
+
+    if (isSolve) {
+      // 解答题/证明题：不给选项，只给「已完成」按钮
+      if (answered) {
+        html += '<div class="qc-feedback fb-solve">📖 已完成 · 参考答案如下</div>';
+        html += '<div class="qc-solve-answer"><div class="sa-label">参考答案</div><div class="sa-body">' + mathHtml(q.answer, false) + '</div></div>';
+        html += solutionBlock(q);
+      } else {
+        html += '<div class="solve-hint">📝 这是一道解答/证明题：请先在纸上独立完成，再点下面的按钮对照答案。</div>';
+        html += '<div class="qc-actions"><button class="btn primary" data-solvedone data-qid="' + q.qid + '">✓ 已完成（查看答案与解析）</button></div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
     html += '<div class="qc-options">' + ['A', 'B', 'C', 'D'].map(function (L, i) {
       var cls = 'opt';
       if (answered) {
@@ -360,14 +442,7 @@
       html += a.correct ? '✅ 回答正确！' : '❌ 回答错误';
       html += '<div class="fb-answer">正确答案：' + mathHtml(q.answer, true) + '</div>';
       html += '</div>';
-      html += '<div class="qc-solution">';
-      html += '<div class="sol-title">💡 解题思路与过程</div>';
-      html += '<div class="sol-idea">' + mathHtml(q.idea, false) + '</div>';
-      html += '<ol class="sol-steps">' + q.steps.map(function (st) {
-        return '<li><div class="sol-m">' + mathHtml(st.m, true) + '</div><div class="sol-t">' + mathHtml(st.t, false) + '</div></li>';
-      }).join('') + '</ol>';
-      html += '<div class="sol-pit">⚠️ 易错点：' + mathHtml(q.pitfall, false) + '</div>';
-      html += '</div>';
+      html += solutionBlock(q);
     } else {
       html += '<div class="qc-actions"><button class="btn primary" data-submit data-qid="' + q.qid + '" ' + (a.chosen === undefined ? 'disabled' : '') + '>提交答案</button></div>';
     }
@@ -382,7 +457,7 @@
         var a = d.answers[q.qid] || {};
         var cls = 'dot';
         if (i === idx) cls += ' cur';
-        if (a.submitted === true) cls += (a.correct ? ' ok' : ' no');
+        if (a.submitted === true) cls += (q.kind === 'solve' ? ' done' : (a.correct ? ' ok' : ' no'));
         return '<button class="' + cls + '" data-go="' + i + '">' + (i + 1) + '</button>';
       }).join('') + '</div>' +
       '<button class="btn ghost" data-next ' + (idx === d.questions.length - 1 ? 'disabled' : '') + '>下一题 →</button>' +
@@ -561,8 +636,10 @@
   function renderRecords() {
     var hist = state.history.slice().reverse();
     var total = hist.length;
-    var correct = hist.filter(function (h) { return h.correct; }).length;
-    var pct = total ? Math.round(correct / total * 100) : 0;
+    var gradeable = hist.filter(function (h) { return h.correct !== null && h.correct !== undefined; });
+    var correct = gradeable.filter(function (h) { return h.correct; }).length;
+    var pct = gradeable.length ? Math.round(correct / gradeable.length * 100) : 0;
+    var solveCount = hist.filter(function (h) { return h.correct === null; }).length;
 
     // 连续学习天数
     var days = {};
@@ -580,24 +657,32 @@
 
     var html = '<div class="stats card">' +
       '<div class="st"><b>' + total + '</b><span>累计做题</span></div>' +
-      '<div class="st"><b>' + pct + '%</b><span>正确率</span></div>' +
+      '<div class="st"><b>' + pct + '%</b><span>选择题正确率</span></div>' +
       '<div class="st"><b>' + streak + '</b><span>连续学习天数</span></div>' +
       '<div class="st"><b>' + todayCount + '</b><span>今日已做</span></div>' +
       '</div>';
+    if (solveCount) {
+      html += '<div class="stats-note card">📝 其中解答/证明题 <b>' + solveCount + '</b> 道（按「已完成」记录，不计入选择题正确率）</div>';
+    }
 
     // 各题型统计
     html += '<div class="type-stats card"><div class="ts-title">各章节掌握情况</div>';
     Object.keys(QB.types).forEach(function (t) {
       var m = QB.types[t];
       var hs = state.history.filter(function (h) { return h.typeId === t; });
-      var c = hs.filter(function (h) { return h.correct; }).length;
-      var tp = hs.length ? Math.round(c / hs.length * 100) : null;
+      var gr = hs.filter(function (h) { return h.correct !== null && h.correct !== undefined; });
+      var c = gr.filter(function (h) { return h.correct; }).length;
+      var tp = gr.length ? Math.round(c / gr.length * 100) : null;
+      var sv = hs.length - gr.length;
       var ts = state.types[t];
       var nd = S.nextDue(ts, today);
+      var cntTxt = tp === null
+        ? (sv ? '解答题 ' + sv + ' 道' : '未练过')
+        : '做 ' + hs.length + ' 题 · 正确率 ' + tp + '%' + (sv ? '（含解答 ' + sv + '）' : '');
       html += '<div class="ts-row">' +
         '<span class="ts-name" style="--tc:' + m.color + '">' + esc(m.icon) + ' ' + esc(m.name) + '</span>' +
         (ts && ts.status ? '<span class="tag ' + MARK_META[ts.status].cls + '">' + esc(MARK_META[ts.status].name) + '</span>' : '<span class="tag tag-none">未标记</span>') +
-        '<span class="ts-cnt">' + (tp === null ? '未练过' : '做 ' + hs.length + ' 题 · 正确率 ' + tp + '%') + '</span>' +
+        '<span class="ts-cnt">' + cntTxt + '</span>' +
         '<span class="ts-next">' + (nd.date ? nd.date : '—') + '</span>' +
         '</div>';
     });
@@ -615,7 +700,8 @@
           '<span class="h-type" style="--tc:' + QB.types[h.typeId].color + '">' + esc(QB.types[h.typeId].short) + '</span>' +
           '<span class="h-diff" style="--tc:' + QB.difficulties[h.difficulty].color + '">' + esc(QB.difficulties[h.difficulty].name) + '</span>' +
           '<span class="h-q">' + mathHtml(h.question, false) + '</span>' +
-          '<span class="h-res ' + (h.correct ? 'ok' : 'no') + '">' + (h.correct ? '✓' : '✗') + '</span>' +
+          '<span class="h-res ' + (h.correct === null ? 'done' : (h.correct ? 'ok' : 'no')) + '">' +
+          (h.correct === null ? '📝已完成' : (h.correct ? '✓' : '✗')) + '</span>' +
           (h.mark ? markBadge(h.mark) : '') +
           '</div>';
       }).join('') + '</div>';
@@ -638,19 +724,21 @@
     html += '<div class="mas-grid">' + Object.keys(QB.types).map(function (t) {
       var m = QB.types[t];
       var hs = state.history.filter(function (h) { return h.typeId === t; });
-      var c = hs.filter(function (h) { return h.correct; }).length;
-      var tp = hs.length ? Math.round(c / hs.length * 100) : null;
+      var gr = hs.filter(function (h) { return h.correct !== null && h.correct !== undefined; });
+      var c = gr.filter(function (h) { return h.correct; }).length;
+      var tp = gr.length ? Math.round(c / gr.length * 100) : null;
+      var sv = hs.length - gr.length;
       var ts = state.types[t];
       var nd = S.nextDue(ts, today);
       var nb = state.wrongbook.filter(function (e) { return e.typeId === t; }).length;
-      var pctW = hs.length ? Math.min(100, Math.round(c / Math.max(hs.length, 1) * 100)) : 0;
+      var pctW = gr.length ? Math.min(100, Math.round(c / Math.max(gr.length, 1) * 100)) : 0;
       return '<div class="mas-card card" style="--tc:' + m.color + '">' +
         '<div class="mc-top"><span class="mc-icon">' + esc(m.icon) + '</span>' +
         '<div class="mc-info"><div class="mc-name">' + esc(m.name) + '</div>' +
         '<div class="mc-sub">' + (ts && ts.status ? esc(MARK_META[ts.status].name) : '未标记') + '</div></div>' +
         '<span class="mc-acc">' + (tp === null ? '—' : tp + '%') + '</span></div>' +
         '<div class="pbar"><div class="pbar-in" style="width:' + pctW + '%"></div></div>' +
-        '<div class="mc-foot"><span>已做 ' + hs.length + ' 题</span><span>错题本 ' + nb + '</span></div>' +
+        '<div class="mc-foot"><span>已做 ' + hs.length + ' 题' + (sv ? '（解答 ' + sv + '）' : '') + '</span><span>错题本 ' + nb + '</span></div>' +
         '<div class="mc-next">下次复习：<b>' + (nd.date || '待安排') + '</b><i>' + esc(nd.reason) + '</i></div>' +
         '</div>';
     }).join('') + '</div>';
@@ -682,6 +770,30 @@
       var seg = t.closest('[data-diff]');
       if (seg) {
         state.settings.difficulty = seg.getAttribute('data-diff');
+        save();
+        curIdx = 0;
+        renderDaily();
+        return;
+      }
+
+      // 今日练习：自选题型（混搭）
+      var dty = t.closest('[data-dtype]');
+      if (dty) {
+        var tv = dty.getAttribute('data-dtype');
+        var cur = state.settings.dailyTypes || [];
+        var next;
+        if (tv === '') next = [];                 // 「全部」按钮：清空选择
+        else if (cur.indexOf(tv) >= 0) next = cur.filter(function (x) { return x !== tv; });
+        else next = cur.concat([tv]);
+        // 若今天已有作答，更改题型会重新组卷，提醒用户
+        var ds = state.daily[today];
+        var answeredNow = ds && ds.answers ? Object.keys(ds.answers).filter(function (k) {
+          return ds.answers[k].submitted === true;
+        }).length : 0;
+        if (answeredNow > 0 && !window.confirm('更改题型会按新题型重新生成今天的 ' + ds.questions.length + ' 道题（已完成 ' + answeredNow + ' 题会清空进度）。确定吗？')) {
+          return;
+        }
+        state.settings.dailyTypes = next;
         save();
         curIdx = 0;
         renderDaily();
@@ -770,6 +882,17 @@
           submitAnswer(d2, q2, a2.chosen, curSource());
           renderCurrentPractice();
         }
+        return;
+      }
+
+      // 解答题/证明题：点击「已完成」→ 揭示答案与解析
+      var sd = t.closest('[data-solvedone]');
+      if (sd) {
+        var qidS = sd.getAttribute('data-qid');
+        var dS = curContainer();
+        var qS = dS.questions.filter(function (x) { return x.qid === qidS; })[0];
+        markSolved(dS, qS, curSource());
+        renderCurrentPractice();
         return;
       }
 
@@ -923,5 +1046,18 @@
 
   window.__initApp = init;
   window.__rerenderAll = function () { renderMathIn(document); };
-  window.__appDebug = { state: function () { return state; }, ensureDaily: ensureDaily, today: today };
+  window.__appDebug = {
+    state: function () { return state; },
+    ensureDaily: ensureDaily,
+    today: today,
+    // 测试辅助：用给定题目替换今日套题（用于验证解答题流程）
+    setDailyQuestions: function (qs) {
+      state.daily[today] = {
+        date: today, difficulty: state.settings.difficulty, typeIds: '',
+        questions: qs, answers: {}, due: [], used: {}
+      };
+      save();
+      if (view === 'daily') renderDaily();
+    }
+  };
 })(typeof window !== 'undefined' ? window : globalThis);
