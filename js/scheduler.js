@@ -119,6 +119,7 @@
       used[typeId] = (used[typeId] || 0) + 1;
       var q = QB.generate({
         typeId: typeId, difficulty: difficulty, rng: rng,
+        forms: opts.forms || [],
         avoid: (avoidMap[typeId] || []).concat(usedSigs)
       });
       usedSigs.push(q.sig);
@@ -152,6 +153,7 @@
       used[typeId] = (used[typeId] || 0) + 1;
       var q = QB.generate({
         typeId: typeId, difficulty: difficulty === 'mixed' ? null : difficulty, rng: rng,
+        forms: opts.forms || [],
         avoid: (avoidMap[typeId] || []).concat(usedSigs)
       });
       usedSigs.push(q.sig);
