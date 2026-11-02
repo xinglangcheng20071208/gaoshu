@@ -101,17 +101,34 @@
 
   // 生成一道题：typeId + difficulty；该难度无模板时就近取其它难度
   // opts.avoid: 题目标签数组，生成的题自动避开这些"原题"（换模板或换参数）
+  // opts.forms: 题目形式过滤 ['choice','solution','proof']；空 = 不限
+  //   优先级：同难度+同形式 → 同题型任意难度+同形式 → 同题型任意形式
+  //   说明：只选"解答/证明"时，解答与证明互相兜底（都是笔答题），绝不掉回选择题
   function generate(opts) {
     opts = opts || {};
     var rng = opts.rng || Math.random;
     var avoid = opts.avoid || [];
-    var pool = templatesOf(opts.typeId, opts.difficulty);
+    var forms = opts.forms || [];
+    var onlyWritten = forms.length > 0 && forms.indexOf('choice') < 0;
+    function formOk(t) {
+      if (!forms.length) return true;
+      var f = t.form || 'choice';
+      if (forms.indexOf(f) >= 0) return true;
+      if (onlyWritten && (f === 'solution' || f === 'proof')) return true; // 解答/证明互相兜底
+      return false;
+    }
+
+    var pool = templatesOf(opts.typeId, opts.difficulty).filter(formOk);
+    if (!pool.length && forms.length) {
+      // 该难度没有这种形式的题：到同题型的其它难度里找同形式
+      pool = templates.filter(function (t) { return t.type === opts.typeId && formOk(t); });
+    }
     if (!pool.length) {
       var order = ['easy', 'medium', 'hard'];
       var idx = order.indexOf(opts.difficulty);
       for (var d = 1; d <= 2; d++) {
-        if (idx - d >= 0 && templatesOf(opts.typeId, order[idx - d]).length) { pool = templatesOf(opts.typeId, order[idx - d]); break; }
-        if (idx + d < order.length && templatesOf(opts.typeId, order[idx + d]).length) { pool = templatesOf(opts.typeId, order[idx + d]); break; }
+        if (idx - d >= 0 && templatesOf(opts.typeId, order[idx - d]).filter(formOk).length) { pool = templatesOf(opts.typeId, order[idx - d]).filter(formOk); break; }
+        if (idx + d < order.length && templatesOf(opts.typeId, order[idx + d]).filter(formOk).length) { pool = templatesOf(opts.typeId, order[idx + d]).filter(formOk); break; }
       }
     }
     if (!pool.length) pool = templatesOf(opts.typeId);
@@ -128,7 +145,8 @@
     q.difficulty = q.difficulty || tpl.difficulty;
     q.sig = sig;
     q.tech = tpl.tech || '';
-    q.kind = tpl.kind || 'choice';            // choice 选择题 | solve 解答/证明题
+    q.form = tpl.form || 'choice';             // choice 选择题 | solution 解答题 | proof 证明题
+    q.kind = tpl.kind || (tpl.form && tpl.form !== 'choice' ? 'solve' : 'choice');
     q.options = q.options || [];
     q.answerIndex = (typeof q.answerIndex === 'number') ? q.answerIndex : -1;
     return q;
