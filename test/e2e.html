@@ -24,6 +24,9 @@
 <script src="../js/qb-app.js"></script>
 <script src="../js/qb-integral.js"></script>
 <script src="../js/qb-extra.js"></script>
+<script src="../js/qb-more.js"></script>
+<script src="../js/qb-more2.js"></script>
+<script src="../js/qb-solve.js"></script>
 <script src="../js/scheduler.js"></script>
 <script src="../js/store.js"></script>
 <script src="../js/app.js"></script>
@@ -35,7 +38,14 @@ window.addEventListener('error', function (e) {
   errs.push((e.message || '?') + ' @' + (e.lineno || 0) + ' src=' + (e.filename || '').slice(-40));
 });
 function log(name, ok, extra) { results.push((ok ? 'PASS' : 'FAIL') + ' ' + name + (extra ? ' | ' + extra : '')); }
-function click(el) { el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }
+function click(el) {
+  if (!el) {
+    var st = (new Error()).stack || '';
+    errs.push('click-null @' + st.split('\n').slice(1, 3).join(' | '));
+    return;
+  }
+  el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+}
 function step(fn, ms) { setTimeout(fn, ms); }
 function finish() {
   document.getElementById('result').textContent = 'RESULTS::' + results.join(';;') + ';;CLICKS::' + rawClicks.join(',') + ';;ERRS::' + errs.join('||');
@@ -188,14 +198,23 @@ function go() {
                                               var srcs = Array.prototype.map.call(document.querySelectorAll('.h-src'), function (el) { return el.textContent; });
                                               log('records-shows-custom-src', srcs.indexOf('专项') >= 0, srcs.join(','));
 
-                                              // 10. 制造一道错题：今日练习第 2 题选错并标记未掌握
+                                              // 10. 制造一道错题：今日练习里找一道选择题，选错并标记未掌握
                                               click(document.querySelector('.tab[data-view="daily"]'));
                                               step(function () {
-                                                click(document.querySelector('.dot[data-go="1"]'));
+                                                var stD0 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                var dk0 = Object.keys(stD0.daily)[0];
+                                                var dqIdx = -1;
+                                                stD0.daily[dk0].questions.forEach(function (q, i) {
+                                                  var a0 = stD0.daily[dk0].answers && stD0.daily[dk0].answers[q.qid];
+                                                  var unAnswered = !(a0 && a0.submitted === true);
+                                                  if (dqIdx < 0 && q.kind !== 'solve' && unAnswered) dqIdx = i;
+                                                });
+                                                log('daily-has-choice', dqIdx >= 0, 'idx=' + dqIdx);
+                                                click(document.querySelector('.dot[data-go="' + dqIdx + '"]'));
                                                 step(function () {
                                                   var stD = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
                                                   var dk = Object.keys(stD.daily)[0];
-                                                  var dq = stD.daily[dk].questions[1];
+                                                  var dq = stD.daily[dk].questions[dqIdx];
                                                   var wrongPick = (dq.answerIndex + 1) % 4;
                                                   var domQidBefore = document.querySelector('.opt').getAttribute('data-qid');
                                                   log('dom-vs-dq-before-pick', domQidBefore === dq.qid, 'dom=' + domQidBefore + ' dq=' + dq.qid + ' dqT=' + dq.typeId + '/' + dq.tpl);
@@ -273,7 +292,59 @@ function go() {
                                                                           st10.daily[dk10].questions.forEach(function (q) { used10[q.typeId] = 1; });
                                                                           log('daily-all-types-restored', Object.keys(used10).length === 7, 'types=' + Object.keys(used10).length);
                                                                           log('settings-daily-types-cleared', (st10.settings.dailyTypes || []).length === 0);
-                                                                          finish();
+
+                                                                          // 13. 今日练习：题型形式（选择题/解答题/证明题）
+                                                                          var fchips = document.querySelectorAll('[data-dform]');
+                                                                          log('dform-chips', fchips.length === 3, 'n=' + fchips.length);
+                                                                          click(document.querySelector('[data-dform="choice"]'));
+                                                                          step(function () {
+                                                                            var stF = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                                            var dkF = Object.keys(stF.daily)[0];
+                                                                            var qsF = stF.daily[dkF].questions;
+                                                                            log('daily-no-choice', qsF.every(function (q) { return q.form !== 'choice'; }), 'forms=' + qsF.map(function (q) { return q.form; }).join(','));
+                                                                            log('settings-daily-forms', JSON.stringify(stF.settings.dailyForms) === JSON.stringify(['solution', 'proof']), JSON.stringify(stF.settings.dailyForms));
+                                                                            // 恢复：重新勾选选择题
+                                                                            click(document.querySelector('[data-dform="choice"]'));
+                                                                            step(function () {
+                                                                              var stF2 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                                              var dkF2 = Object.keys(stF2.daily)[0];
+                                                                              var forms2 = stF2.daily[dkF2].questions.map(function (q) { return q.form; });
+                                                                              log('daily-forms-restored', forms2.indexOf('choice') >= 0);
+                                                                              log('settings-daily-forms-all', (stF2.settings.dailyForms || []).length === 0);
+                                                                              // 14. 专项练习：只选证明题
+                                                                              click(document.querySelector('.tab[data-view="custom"]'));
+                                                                              step(function () {
+                                                                                var cfc = document.querySelector('[data-cform]');
+                                                                                log('custom-form-chips', !!cfc && document.querySelectorAll('[data-cform]').length === 3);
+                                                                                click(document.querySelector('[data-cform="choice"]'));
+                                                                                step(function () {
+                                                                                  click(document.querySelector('[data-cform="solution"]'));
+                                                                                  step(function () {
+                                                                                    // 只保留证明题；先把已有勾选清掉再只选"极限"
+                                                                                    click(document.querySelector('.ctype[data-ctype="limit"]'));
+                                                                                    step(function () {
+                                                                                      click(document.querySelector('.ctype[data-ctype="indint"]'));
+                                                                                      step(function () {
+                                                                                        click(document.querySelector('.ctype[data-ctype="limit"]'));
+                                                                                        step(function () {
+                                                                                          click(document.querySelector('[data-ccount="5"]'));
+                                                                                          step(function () {
+                                                                                            click(document.querySelector('[data-cstart]'));
+                                                                                            step(function () {
+                                                                                              var stC = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                                                              var cset = stC.custom.set || { questions: [] };
+                                                                                              log('custom-only-proof', cset.questions.length === 5 && cset.questions.every(function (q) { return q.form === 'proof'; }), 'forms=' + cset.questions.map(function (q) { return q.form; }).join(','));
+                                                                                              finish();
+                                                                                            }, 200);
+                                                                                          }, 200);
+                                                                                        }, 200);
+                                                                                      }, 200);
+                                                                                    }, 200);
+                                                                                  }, 200);
+                                                                                }, 200);
+                                                                              }, 200);
+                                                                            }, 200);
+                                                                          }, 200);
                                                                         }, 200);
                                                                       }, 200);
                                                                     }, 200);
