@@ -127,6 +127,7 @@
     q.typeId = tpl.type;
     q.difficulty = q.difficulty || tpl.difficulty;
     q.sig = sig;
+    q.tech = tpl.tech || '';
     return q;
   }
 
