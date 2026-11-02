@@ -128,6 +128,9 @@
     q.difficulty = q.difficulty || tpl.difficulty;
     q.sig = sig;
     q.tech = tpl.tech || '';
+    q.kind = tpl.kind || 'choice';            // choice 选择题 | solve 解答/证明题
+    q.options = q.options || [];
+    q.answerIndex = (typeof q.answerIndex === 'number') ? q.answerIndex : -1;
     return q;
   }
 
