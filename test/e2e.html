@@ -251,7 +251,32 @@ function go() {
                                                                   step(function () {
                                                                     log('redo-exit-back-list', !!document.querySelector('.wcard'));
                                                                     log('corrected-badge-shown', !!document.querySelector('.tag.mark-corrected'));
-                                                                    finish();
+
+                                                                    // 12. 每日练习：自选题型混搭
+                                                                    click(document.querySelector('.tab[data-view="daily"]'));
+                                                                    step(function () {
+                                                                      window.confirm = function () { return true; };
+                                                                      var chips = document.querySelectorAll('[data-dtype]');
+                                                                      log('dtype-chips', chips.length === 8, 'n=' + chips.length);
+                                                                      click(document.querySelector('[data-dtype="limit"]'));
+                                                                      step(function () {
+                                                                        var st9 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                                        var dk9 = Object.keys(st9.daily)[0];
+                                                                        var qs9 = st9.daily[dk9].questions;
+                                                                        log('daily-only-limit', qs9.length === 10 && qs9.every(function (q) { return q.typeId === 'limit'; }));
+                                                                        log('settings-daily-types', JSON.stringify(st9.settings.dailyTypes) === JSON.stringify(['limit']), JSON.stringify(st9.settings.dailyTypes));
+                                                                        click(document.querySelector('[data-dtype=""]'));
+                                                                        step(function () {
+                                                                          var st10 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                                          var dk10 = Object.keys(st10.daily)[0];
+                                                                          var used10 = {};
+                                                                          st10.daily[dk10].questions.forEach(function (q) { used10[q.typeId] = 1; });
+                                                                          log('daily-all-types-restored', Object.keys(used10).length === 7, 'types=' + Object.keys(used10).length);
+                                                                          log('settings-daily-types-cleared', (st10.settings.dailyTypes || []).length === 0);
+                                                                          finish();
+                                                                        }, 200);
+                                                                      }, 200);
+                                                                    }, 200);
                                                                   }, 150);
                                                                 }, 150);
                                                               }, 150);
