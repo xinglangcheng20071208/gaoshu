@@ -21,7 +21,7 @@
   function defaultState() {
     return {
       version: 1,
-      settings: { difficulty: 'medium', theme: 'light' },
+      settings: { difficulty: 'medium', theme: 'light', dailyTypes: [] }, // dailyTypes 空 = 全部题型
       types: {},
       daily: {},
       custom: { settings: { typeIds: [], difficulty: 'mixed', count: 10 }, set: null },
@@ -39,6 +39,7 @@
       if (!s || s.version !== 1) return defaultState();
       // 防御：补齐缺的字段
       if (!s.settings) s.settings = { difficulty: 'medium', theme: 'light' };
+      if (s.settings.dailyTypes === undefined) s.settings.dailyTypes = [];
       if (!s.types) s.types = {};
       if (!s.daily) s.daily = {};
       if (!s.custom) s.custom = { settings: { typeIds: [], difficulty: 'mixed', count: 10 }, set: null };
