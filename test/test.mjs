@@ -17,6 +17,7 @@ require('../js/qb-integral.js');
 require('../js/qb-extra.js');
 require('../js/qb-more.js');
 require('../js/qb-more2.js');
+require('../js/qb-solve.js');
 const S = require('../js/scheduler.js');
 
 /* ---------- 独立的小工具（与 core.js 分开实现） ---------- */
@@ -168,7 +169,18 @@ const V = {
   'defapp-Ap14': () => '\\frac{\\pi^2}{2}',
   'ode-O13': q => '\\frac{e^{' + q.params.k + 'x}}{' + q.params.k + '}+C',
   'ode-O14': q => 'x^2' + (() => { const s = q.params.b - q.params.a * q.params.a; return s === 0 ? '' : (s > 0 ? '+' : '') + s; })(),
-  'ode-O15': q => 'e^{' + q.params.k + 'x^2}'
+  'ode-O15': q => 'e^{' + q.params.k + 'x^2}',
+
+  /* ---- 解答题 / 证明题（无选项，点「已完成」看答案） ---- */
+  'solve-S1': () => '对任意 $\\varepsilon>0$，取 $\\delta=\\frac{\\varepsilon}{3}$，当 $0<|x-2|<\\delta$ 时，$|(3x-1)-5|=3|x-2|<3\\delta=\\varepsilon$，故 $\\lim_{x\\to 2}(3x-1)=5$。',
+  'solve-S2': () => '令 $f(x)=x^3-3x+1$，它在 $[0,1]$ 上连续，且 $f(0)=1>0$、$f(1)=-1<0$，由零点定理，存在 $\\xi\\in(0,1)$ 使 $f(\\xi)=0$，即方程在 $(0,1)$ 内至少有一个根。',
+  'solve-S3': () => '$f$ 在 $[0,1]$ 与 $[1,2]$ 上分别满足罗尔定理条件（连续、可导、端点值相等），故存在 $c_1\\in(0,1)$、$c_2\\in(1,2)$ 使 $f\\prime(c_1)=f\\prime(c_2)=0$，且 $c_1\\neq c_2$。',
+  'solve-S4': () => '令 $f(x)=x-\\sin x$，则 $f\\prime(x)=1-\\cos x\\ge 0$，且等号只在孤立点成立，故 $f$ 在 $[0,+\\infty)$ 上严格单调递增；又 $f(0)=0$，所以 $x>0$ 时 $f(x)>0$，即 $\\sin x<x$。',
+  'solve-S5': () => '极大值 $f(0)=0$，极小值 $f(2)=-4$。',
+  'solve-S6': () => '$y\\prime\\prime=6x$：$x<0$ 时 $y\\prime\\prime<0$，曲线凹向下；$x>0$ 时 $y\\prime\\prime>0$，曲线凹向上；拐点为 $(0,0)$。',
+  'solve-S7': () => '$\\int x e^{2x}\\mathrm{d}x = \\frac{e^{2x}}{4}(2x-1)+C$。',
+  'solve-S8': () => '令 $u=x^2$，$\\mathrm{d}u=2x\\mathrm{d}x$，则 $\\int_0^1 x e^{x^2}\\mathrm{d}x=\\frac{1}{2}\\int_0^1 e^u\\mathrm{d}u=\\frac{e-1}{2}$。',
+  'solve-S9': () => '$\\int_{-a}^{a}f(x)\\mathrm{d}x=\\int_{-a}^{0}f(x)\\mathrm{d}x+\\int_{0}^{a}f(x)\\mathrm{d}x$，对第一个积分令 $x=-t$，得 $\\int_{0}^{a}f(-t)\\mathrm{d}t=-\\int_{0}^{a}f(t)\\mathrm{d}t$，与第二个积分相消，故原积分为 0。'
 };
 
 /* ---------- 测试 1：模板大规模生成 + 独立答案验证 ---------- */
@@ -196,10 +208,18 @@ for (const tpl of QB.templates) {
     }
     catch (e) { fails.push(tpl.id + ' 生成抛异常: ' + e.message); break; }
     tplOk++;
+    const isSolve = tpl.kind === 'solve';
     // 结构检查
-    if (q.options.length !== 4) { fails.push(tpl.id + ' 选项数不为4'); }
-    if (new Set(q.options).size !== 4) { fails.push(tpl.id + ' 选项重复: ' + JSON.stringify(q.options)); }
-    if (q.options[q.answerIndex] !== q.answer) { fails.push(tpl.id + ' 答案与下标不符'); }
+    if (isSolve) {
+      if (!q.answer || typeof q.answer !== 'string') { fails.push(tpl.id + ' 解答题缺少答案文本'); }
+      if (q.options && q.options.length !== 0) { fails.push(tpl.id + ' 解答题不应有选项'); }
+      if (q.kind !== undefined && q.kind !== 'solve') { fails.push(tpl.id + ' 解答题 kind 标记错误'); }
+      if (!Array.isArray(q.steps) || q.steps.length < 2) { fails.push(tpl.id + ' 解答题解析步骤不足'); }
+    } else {
+      if (q.options.length !== 4) { fails.push(tpl.id + ' 选项数不为4'); }
+      if (new Set(q.options).size !== 4) { fails.push(tpl.id + ' 选项重复: ' + JSON.stringify(q.options)); }
+      if (q.options[q.answerIndex] !== q.answer) { fails.push(tpl.id + ' 答案与下标不符'); }
+    }
     // 内容检查
     const blob = JSON.stringify(q);
     if (blob.indexOf('NaN') >= 0 || blob.indexOf('undefined') >= 0) { fails.push(tpl.id + ' 内容含 NaN/undefined'); }
@@ -308,6 +328,16 @@ check(c1.questions.length === 6, '专项应生成指定数量题目');
 check(c1.questions.every(q => q.typeId === 'limit' || q.typeId === 'ode'), '专项只应包含所选题型');
 check(c1.questions.every(q => q.difficulty === 'easy'), '指定难度时所有题应为该难度');
 check(new Set(c1.questions.map(q => q.qid)).size === 6, '专项套题 qid 不应重复');
+
+/* ---------- 测试 6.5：每日练习按自选题型组卷 ---------- */
+console.log('\n--- 每日自选题型 ---');
+const sel1 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(41), typeIds: ['limit', 'mvt'] });
+check(sel1.questions.length === 10, '按题型组卷应生成 10 题');
+check(sel1.questions.every(q => q.typeId === 'limit' || q.typeId === 'mvt'), '每日组卷只应包含所选题型');
+const sel2 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 6, rng: QB.mulberry32(43), typeIds: ['indint'] });
+check(sel2.questions.every(q => q.typeId === 'indint'), '单选题型组卷应全部为该题型');
+const sel3 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(45) });
+check(Object.keys(sel3.used).length === 7, '未选题型时应保持覆盖全部题型');
 
 const c2 = S.buildCustom({ typeIds: ['limit'], difficulty: 'mixed', count: 60, rng: QB.mulberry32(23) });
 const diffSet = new Set(c2.questions.map(q => q.difficulty));
