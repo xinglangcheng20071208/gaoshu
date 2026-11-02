@@ -180,7 +180,11 @@ const V = {
   'solve-S6': () => '$y\\prime\\prime=6x$：$x<0$ 时 $y\\prime\\prime<0$，曲线凹向下；$x>0$ 时 $y\\prime\\prime>0$，曲线凹向上；拐点为 $(0,0)$。',
   'solve-S7': () => '$\\int x e^{2x}\\mathrm{d}x = \\frac{e^{2x}}{4}(2x-1)+C$。',
   'solve-S8': () => '令 $u=x^2$，$\\mathrm{d}u=2x\\mathrm{d}x$，则 $\\int_0^1 x e^{x^2}\\mathrm{d}x=\\frac{1}{2}\\int_0^1 e^u\\mathrm{d}u=\\frac{e-1}{2}$。',
-  'solve-S9': () => '$\\int_{-a}^{a}f(x)\\mathrm{d}x=\\int_{-a}^{0}f(x)\\mathrm{d}x+\\int_{0}^{a}f(x)\\mathrm{d}x$，对第一个积分令 $x=-t$，得 $\\int_{0}^{a}f(-t)\\mathrm{d}t=-\\int_{0}^{a}f(t)\\mathrm{d}t$，与第二个积分相消，故原积分为 0。'
+  'solve-S9': () => '$\\int_{-a}^{a}f(x)\\mathrm{d}x=\\int_{-a}^{0}f(x)\\mathrm{d}x+\\int_{0}^{a}f(x)\\mathrm{d}x$，对第一个积分令 $x=-t$，得 $\\int_{0}^{a}f(-t)\\mathrm{d}t=-\\int_{0}^{a}f(t)\\mathrm{d}t$，与第二个积分相消，故原积分为 0。',
+  'solve-S10': () => '$V=\\pi\\int_0^1(\\sqrt{x})^2\\mathrm{d}x=\\pi\\int_0^1 x\\,\\mathrm{d}x=\\frac{\\pi}{2}$。',
+  'solve-S11': () => '$\\int_0^2(2x-x^2)\\mathrm{d}x=\\left[x^2-\\frac{x^3}{3}\\right]_0^2=4-\\frac{8}{3}=\\frac{4}{3}$。',
+  'solve-S12': () => '通解 $y=x^2+C$；代入 $y(0)=1$ 得 $C=1$，故 $y=x^2+1$。',
+  'solve-S13': () => '积分因子 $e^{x}$，两边同乘得 $(ye^{x})\\prime=e^{2x}$，积分得 $ye^{x}=\\frac{e^{2x}}{2}+C$，故 $y=\\frac{e^{x}}{2}+Ce^{-x}$。'
 };
 
 /* ---------- 测试 1：模板大规模生成 + 独立答案验证 ---------- */
@@ -338,6 +342,27 @@ const sel2 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', coun
 check(sel2.questions.every(q => q.typeId === 'indint'), '单选题型组卷应全部为该题型');
 const sel3 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(45) });
 check(Object.keys(sel3.used).length === 7, '未选题型时应保持覆盖全部题型');
+
+/* ---------- 测试 6.6：按题型形式组卷（选择题/解答题/证明题） ---------- */
+console.log('\n--- 题型形式 ---');
+const form1 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(47), forms: ['solution', 'proof'] });
+check(form1.questions.every(q => q.form === 'solution' || q.form === 'proof'), '只选解答/证明题时不应出现选择题: ' + form1.questions.map(q => q.form).join(','));
+const form2 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(49), forms: ['choice'] });
+check(form2.questions.every(q => q.form === 'choice'), '只选选择题时不应出现解答/证明题');
+const form3 = S.buildCustom({ typeIds: ['limit', 'mvt'], difficulty: 'medium', count: 6, rng: QB.mulberry32(51), forms: ['proof'] });
+check(form3.questions.every(q => q.form !== 'choice'), '专项只选证明题时不应出现选择题: ' + form3.questions.map(q => q.form).join(','));
+const form4 = S.buildCustom({ typeIds: ['defapp'], difficulty: 'mixed', count: 5, rng: QB.mulberry32(53), forms: ['solution'] });
+check(form4.questions.every(q => q.form === 'solution'), '专项只选解答题时应全部为解答题');
+// 只选"证明题"时，没有证明题模板的章节应回退为解答题（笔答题），绝不回退为选择题
+const form5 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(55), forms: ['proof'] });
+check(form5.questions.every(q => q.form !== 'choice'), '只选证明题时不应出现选择题（可用解答题兜底）: ' + form5.questions.map(q => q.form).join(','));
+const form6 = S.buildCustom({ typeIds: ['indint'], difficulty: 'medium', count: 5, rng: QB.mulberry32(57), forms: ['proof'] });
+check(form6.questions.every(q => q.form !== 'choice'), '无证明题模板的章节应回退为解答题而非选择题: ' + form6.questions.map(q => q.form).join(','));
+// 每个题型都至少有一种解答/证明题（保证"只选解答题"时任何题型都有得练）
+for (const t of Object.keys(QB.types)) {
+  const anySolve = QB.templates.some(tpl => tpl.type === t && (tpl.form === 'solution' || tpl.form === 'proof'));
+  check(anySolve, '题型 ' + t + ' 缺少解答/证明题模板');
+}
 
 const c2 = S.buildCustom({ typeIds: ['limit'], difficulty: 'mixed', count: 60, rng: QB.mulberry32(23) });
 const diffSet = new Set(c2.questions.map(q => q.difficulty));
