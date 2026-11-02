@@ -94,11 +94,24 @@
     Store.save(state);
   }
 
+  // 题型形式（选择题 / 解答题 / 证明题）
+  var FORM_META = {
+    choice: { name: '选择题', color: '#6366f1' },
+    solution: { name: '解答题', color: '#0ea5e9' },
+    proof: { name: '证明题', color: '#8b5cf6' }
+  };
+  function effForms(arr) {
+    var f = (arr || []).filter(function (x) { return FORM_META[x]; });
+    return f.length ? f : ['choice', 'solution', 'proof'];
+  }
+
   function ensureDaily() {
     var d = state.daily[today];
     var sel = (state.settings.dailyTypes || []).slice().sort().join(',');
     var curSel = d && d.typeIds ? d.typeIds : '';
-    if (!d || d.difficulty !== state.settings.difficulty || curSel !== sel) {
+    var formsSel = effForms(state.settings.dailyForms).slice().sort().join(',');
+    var curForms = d && d.forms ? d.forms : '';
+    if (!d || d.difficulty !== state.settings.difficulty || curSel !== sel || curForms !== formsSel) {
       // 举一反三：避开每个题型上一次做过的原题（同模板同参数）
       var avoidMap = {};
       Object.keys(state.types).forEach(function (t) {
@@ -107,10 +120,12 @@
       d = S.buildDaily({
         typesState: state.types, today: today,
         difficulty: state.settings.difficulty, count: 10, avoidMap: avoidMap,
-        typeIds: state.settings.dailyTypes || []
+        typeIds: state.settings.dailyTypes || [],
+        forms: effForms(state.settings.dailyForms)
       });
       d.difficulty = state.settings.difficulty; // 关键：给套装盖章难度，避免每次误判重建
       d.typeIds = sel;                          // 记录组卷所用题型，用于判断是否需要重建
+      d.forms = formsSel;                       // 记录组卷所用形式
       d.answers = {};
       state.daily[today] = d;
       Object.keys(d.used).forEach(function (t) {
@@ -171,6 +186,7 @@
     }
     state.wrongbook.push({
       id: q.qid, date: today, typeId: q.typeId, difficulty: q.difficulty,
+      form: q.form || 'choice',
       question: q.question, options: q.options, answerIndex: q.answerIndex,
       answer: q.answer, idea: q.idea, steps: q.steps, pitfall: q.pitfall,
       mark: mark, sig: q.sig, tpl: q.tpl
@@ -299,12 +315,20 @@
       return '<button class="seg' + (on ? ' active' : '') + '" data-dtype="' + t + '" style="--tc:' + m.color + '" title="' + esc(m.name) + '">' + esc(m.short) + '</button>';
     }).join('');
 
+    var forms = effForms(state.settings.dailyForms);
+    var formChips = ['choice', 'solution', 'proof'].map(function (f) {
+      var m = FORM_META[f];
+      var on = forms.indexOf(f) >= 0;
+      return '<button class="seg' + (on ? ' active' : '') + '" data-dform="' + f + '" style="--tc:' + m.color + '">' + m.name + '</button>';
+    }).join('');
+
     var html = '';
     html += '<div class="daily-meta card">';
     html += '<div class="dm-row1"><span class="dm-date">📅 ' + today + '</span><div class="dm-diff">难度：<span class="segs">' + diffs + '</span></div></div>';
     html += '<div class="dm-row2"><span class="dm-prog">今日进度 <b>' + answered + '</b>/' + d.questions.length + '</span><div class="pbar"><div class="pbar-in" style="width:' + Math.round(answered / d.questions.length * 100) + '%"></div></div></div>';
     html += '<div class="dm-row3"><span class="dm-plan">自选题型</span><div class="dm-chips">' + typeChips +
       '<button class="seg' + (sel.length === 0 ? ' active' : '') + '" data-dtype="" style="--tc:var(--muted)">全部</button></div></div>';
+    html += '<div class="dm-row3"><span class="dm-plan">题型形式</span><div class="dm-chips">' + formChips + '</div></div>';
     html += '<div class="dm-row3"><span class="dm-plan">今日复习计划</span><div class="dm-chips">' + dueHtml + '</div></div>';
     html += '</div>';
 
@@ -405,7 +429,7 @@
     html += '<div class="qc-head">' +
       '<span class="qc-no">第 ' + (idx + 1) + '/' + d.questions.length + ' 题</span>' +
       typeBadge(q.typeId) + diffBadge(q.difficulty) +
-      (isSolve ? '<span class="chip chip-solve">解答/证明题</span>' : '') +
+      (isSolve ? '<span class="chip chip-solve">' + (q.form === 'proof' ? '证明题' : '解答题') + '</span>' : '') +
       (q.tech ? '<span class="chip chip-tech" title="本题考察的方法">' + esc(q.tech) + '</span>' : '') +
       '<span class="chip chip-reason">' + esc(q.dueReason) + '</span></div>';
     html += marksHtml;
@@ -482,6 +506,7 @@
 
     var typeLabels = s.typeIds.length ? s.typeIds.map(function (t) { return QB.types[t].short; }).join('、') : '全部题型';
     var diffLabel = CUSTOM_DIFFS[s.difficulty] ? CUSTOM_DIFFS[s.difficulty].name : '混合';
+    var formLabels = effForms(s.forms).map(function (f) { return FORM_META[f].name; }).join('、');
 
     var html = '<div class="daily-meta card">';
     html += '<div class="dm-row1"><span class="dm-date">🎯 专项练习</span>' +
@@ -490,6 +515,7 @@
       '<div class="pbar"><div class="pbar-in" style="width:' + Math.round(answered / set.questions.length * 100) + '%"></div></div></div>';
     html += '<div class="dm-row3"><span class="dm-plan">题型与难度</span><div class="dm-chips">' +
       '<span class="chip" style="--tc:#6366f1">' + esc(typeLabels) + '</span>' +
+      '<span class="chip" style="--tc:#0ea5e9">' + esc(formLabels) + '</span>' +
       '<span class="chip" style="--tc:' + CUSTOM_DIFFS[s.difficulty].color + '">' + esc(diffLabel) + '</span></div></div>';
     html += '</div>';
 
@@ -527,13 +553,21 @@
       return '<button class="seg' + (s.count === n ? ' active' : '') + '" data-ccount="' + n + '" style="--tc:#6366f1">' + n + ' 题</button>';
     }).join('');
 
+    var cforms = effForms(s.forms);
+    var cformChips = ['choice', 'solution', 'proof'].map(function (f) {
+      var m = FORM_META[f];
+      var on = cforms.indexOf(f) >= 0;
+      return '<button class="seg' + (on ? ' active' : '') + '" data-cform="' + f + '" style="--tc:' + m.color + '">' + m.name + '</button>';
+    }).join('');
+
     var html = '<div class="cfg card">';
     html += '<div class="cfg-title">🎯 专项练习</div>';
-    html += '<div class="cfg-desc">勾选想练的章节（可多选），选好难度和题量后开始。专项练习独立于每日 10 题，标记的掌握状态同样影响复习计划与错题本。</div>';
+    html += '<div class="cfg-desc">勾选想练的章节（可多选）、题型形式（选择题/解答题/证明题），选好难度和题量后开始。专项练习独立于每日 10 题，标记的掌握状态同样影响复习计划与错题本。</div>';
 
     html += '<div class="cfg-block"><div class="cfg-label">📖 选择题型（已选 ' + s.typeIds.length + '/7）</div>';
     html += '<div class="ctype-grid">' + typesHtml + '</div></div>';
 
+    html += '<div class="cfg-block"><div class="cfg-label">🧩 题型形式（可多选）</div><div class="segs">' + cformChips + '</div></div>';
     html += '<div class="cfg-block"><div class="cfg-label">🎚️ 题目难度</div><div class="segs">' + diffsHtml + '</div></div>';
     html += '<div class="cfg-block"><div class="cfg-label">🔢 题量</div><div class="segs">' + countsHtml + '</div></div>';
 
@@ -800,6 +834,28 @@
         return;
       }
 
+      // 今日练习：选择题型形式（选择题/解答题/证明题）
+      var dfo = t.closest('[data-dform]');
+      if (dfo) {
+        var fv = dfo.getAttribute('data-dform');
+        var curF = effForms(state.settings.dailyForms);
+        var nextF = curF.indexOf(fv) >= 0 ? curF.filter(function (x) { return x !== fv; }) : curF.concat([fv]);
+        if (!nextF.length) nextF = [fv];               // 至少保留一种形式
+        var normalized = nextF.length === 3 ? [] : nextF; // 三种全选 = 不限
+        var dsF = state.daily[today];
+        var answeredF = dsF && dsF.answers ? Object.keys(dsF.answers).filter(function (k) {
+          return dsF.answers[k].submitted === true;
+        }).length : 0;
+        if (answeredF > 0 && !window.confirm('切换题型形式会重新生成今天的 ' + dsF.questions.length + ' 道题（已完成 ' + answeredF + ' 题会清空进度）。确定吗？')) {
+          return;
+        }
+        state.settings.dailyForms = normalized;
+        save();
+        curIdx = 0;
+        renderDaily();
+        return;
+      }
+
       // 专项练习：勾选题型
       var cty = t.closest('[data-ctype]');
       if (cty) {
@@ -827,6 +883,18 @@
         renderCustom();
         return;
       }
+      // 专项练习：题型形式
+      var cfo = t.closest('[data-cform]');
+      if (cfo) {
+        var cfv = cfo.getAttribute('data-cform');
+        var cf = effForms(state.custom.settings.forms);
+        var nf = cf.indexOf(cfv) >= 0 ? cf.filter(function (x) { return x !== cfv; }) : cf.concat([cfv]);
+        if (!nf.length) nf = [cfv];
+        state.custom.settings.forms = nf.length === 3 ? [] : nf;
+        save();
+        renderCustom();
+        return;
+      }
       // 专项练习：开始
       var cst = t.closest('[data-cstart]');
       if (cst && !cst.disabled) {
@@ -836,7 +904,10 @@
           cs2.typeIds.forEach(function (tt) {
             if (state.types[tt] && state.types[tt].lastSig) avoidMap2[tt] = [state.types[tt].lastSig];
           });
-          var built = S.buildCustom({ typeIds: cs2.typeIds, difficulty: cs2.difficulty, count: cs2.count, avoidMap: avoidMap2 });
+          var built = S.buildCustom({
+            typeIds: cs2.typeIds, difficulty: cs2.difficulty, count: cs2.count,
+            forms: effForms(cs2.forms), avoidMap: avoidMap2
+          });
           state.custom.set = { date: today, questions: built.questions, answers: {} };
           Object.keys(built.lastSigs).forEach(function (tt) {
             state.types[tt] = state.types[tt] || {};
@@ -989,6 +1060,7 @@
             var q = QB.generate({
               typeId: entry.typeId,
               difficulty: entry.difficulty,
+              forms: entry.form ? [entry.form] : [],   // 保持原题形式（选择题错题→重做选择题）
               avoid: entry.sig ? [entry.sig] : []
             });
             q.dueReason = '错题变式';
@@ -1053,7 +1125,9 @@
     // 测试辅助：用给定题目替换今日套题（用于验证解答题流程）
     setDailyQuestions: function (qs) {
       state.daily[today] = {
-        date: today, difficulty: state.settings.difficulty, typeIds: '',
+        date: today, difficulty: state.settings.difficulty,
+        typeIds: (state.settings.dailyTypes || []).slice().sort().join(','),
+        forms: effForms(state.settings.dailyForms).slice().sort().join(','),
         questions: qs, answers: {}, due: [], used: {}
       };
       save();
