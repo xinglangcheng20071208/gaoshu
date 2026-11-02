@@ -82,6 +82,7 @@
   }
 
   // 生成今天的一套题
+  // opts.typeIds: 用户自选题型（空 = 全部 7 个题型；选择后只在所选题型中组卷）
   function buildDaily(opts) {
     var typesState = opts.typesState || {};
     var today = opts.today;
@@ -90,10 +91,19 @@
     var rng = opts.rng || Math.random;
 
     var due = dueList(typesState, today);
-    var order = due.map(function (d) { return d.typeId; });
-    Object.keys(QB.types).forEach(function (t) {
-      if (order.indexOf(t) < 0) order.push(t);
-    });
+    var selected = (opts.typeIds || []).filter(function (t) { return QB.types[t]; });
+    var order;
+    if (selected.length) {
+      // 只保留所选题型；到期题型优先排前面
+      var dueIds = due.map(function (d) { return d.typeId; }).filter(function (t) { return selected.indexOf(t) >= 0; });
+      var restSel = selected.filter(function (t) { return dueIds.indexOf(t) < 0; });
+      order = dueIds.concat(restSel);
+    } else {
+      order = due.map(function (d) { return d.typeId; });
+      Object.keys(QB.types).forEach(function (t) {
+        if (order.indexOf(t) < 0) order.push(t);
+      });
+    }
 
     var questions = [];
     var used = {};
