@@ -16,6 +16,7 @@ require('../js/qb-app.js');
 require('../js/qb-integral.js');
 require('../js/qb-extra.js');
 require('../js/qb-more.js');
+require('../js/qb-more2.js');
 const S = require('../js/scheduler.js');
 
 /* ---------- 独立的小工具（与 core.js 分开实现） ---------- */
@@ -140,7 +141,34 @@ const V = {
   'defapp-Ap10': () => 'e-1',
   'ode-O10': () => 'x^3+C_1x+C_2',
   'ode-O11': () => '\\frac{e^{x}}{2}+Ce^{-x}',
-  'ode-O12': q => q.params.a === 1 ? '\\sin x' : '\\sin x' + signed(q.params.a - 1)
+  'ode-O12': q => q.params.a === 1 ? '\\sin x' : '\\sin x' + signed(q.params.a - 1),
+
+  /* ---- 扩充模板 ②（例题拆分/归类） ---- */
+  'limit-L18': q => frac(q.params.a, q.params.b),
+  'limit-L19': q => String(q.params.a),
+  'limit-L20': q => frac(q.params.a, 2),
+  'limit-L21': () => '不存在',
+  'limit-L22': () => '-\\frac{1}{6}',
+  'derivative-D16': q => q.params.k + 'x^{' + (q.params.k - 1) + '}\\ln x+x^{' + (q.params.k - 1) + '}',
+  'derivative-D17': q => 'y=' + (2 * q.params.a) + 'x-' + (q.params.a * q.params.a),
+  'derivative-D18': () => '-1',
+  'derivative-D19': () => '\\sin 2x',
+  'mvt-A9': q => String(2 * q.params.a * q.params.a * q.params.a),
+  'mvt-A10': () => '1',
+  'indint-I17': q => '\\frac{' + q.params.a + 'x^2}{2}+' + q.params.b + 'x+C',
+  'indint-I19': q => '\\frac{1}{3}(x^2+' + q.params.a + ')^{3/2}+C',
+  'indint-I20': () => '2e^{\\sqrt{x}}+C',
+  'indint-I21': () => '\\frac{x}{2}+\\frac{\\sin 2x}{4}+C',
+  'indint-I22': () => '(x^2-2x+2)e^{x}+C',
+  'defint-Df15': q => frac(q.params.a - 1, q.params.a),
+  'defint-Df16': q => String(q.params.a / 2 + q.params.b),
+  'defint-Df17': () => '\\frac{2}{3}',
+  'defint-Df18': () => '\\frac{\\pi}{4}',
+  'defapp-Ap13': () => '\\frac{1}{6}',
+  'defapp-Ap14': () => '\\frac{\\pi^2}{2}',
+  'ode-O13': q => '\\frac{e^{' + q.params.k + 'x}}{' + q.params.k + '}+C',
+  'ode-O14': q => 'x^2' + (() => { const s = q.params.b - q.params.a * q.params.a; return s === 0 ? '' : (s > 0 ? '+' : '') + s; })(),
+  'ode-O15': q => 'e^{' + q.params.k + 'x^2}'
 };
 
 /* ---------- 测试 1：模板大规模生成 + 独立答案验证 ---------- */
@@ -175,6 +203,12 @@ for (const tpl of QB.templates) {
     // 内容检查
     const blob = JSON.stringify(q);
     if (blob.indexOf('NaN') >= 0 || blob.indexOf('undefined') >= 0) { fails.push(tpl.id + ' 内容含 NaN/undefined'); }
+    // 技法标签（tech）传递检查
+    if (tpl.tech) {
+      const viaGen = QB.generate({ typeId: tpl.type, difficulty: tpl.difficulty, rng: QB.mulberry32(seed + 5000) });
+      if (viaGen.tech === undefined) { fails.push(tpl.id + ' 经 generate 后缺少 tech 字段'); }
+      if (q.tech === undefined) { /* 直接调用 gen 不含 tech，属正常 */ }
+    }
     // 独立验证答案
     const expected = verify(q);
     if (expected !== q.answer) {
