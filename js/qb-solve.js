@@ -10,7 +10,7 @@
 
   /* S1 证明：ε-δ 定义证明极限 */
   QB.register({
-    id: 'solve-S1', type: 'limit', difficulty: 'hard', kind: 'solve', tech: 'ε-δ 定义',
+    id: 'solve-S1', type: 'limit', difficulty: 'hard', kind: 'solve', form: 'proof', tech: 'ε-δ 定义',
     gen: function (rng) {
       return mk({
         params: {},
@@ -33,7 +33,7 @@
 
   /* S2 证明：零点定理 */
   QB.register({
-    id: 'solve-S2', type: 'mvt', difficulty: 'medium', kind: 'solve', tech: '零点定理',
+    id: 'solve-S2', type: 'mvt', difficulty: 'medium', kind: 'solve', form: 'proof', tech: '零点定理',
     gen: function (rng) {
       return mk({
         params: {},
@@ -56,7 +56,7 @@
 
   /* S3 证明：罗尔定理（两个零点） */
   QB.register({
-    id: 'solve-S3', type: 'mvt', difficulty: 'hard', kind: 'solve', tech: '罗尔定理',
+    id: 'solve-S3', type: 'mvt', difficulty: 'hard', kind: 'solve', form: 'proof', tech: '罗尔定理',
     gen: function (rng) {
       return mk({
         params: {},
@@ -81,7 +81,7 @@
 
   /* S4 证明：单调性证不等式 */
   QB.register({
-    id: 'solve-S4', type: 'derivative', difficulty: 'hard', kind: 'solve', tech: '单调性证不等式',
+    id: 'solve-S4', type: 'derivative', difficulty: 'hard', kind: 'solve', form: 'proof', tech: '单调性证不等式',
     gen: function (rng) {
       return mk({
         params: {},
@@ -104,7 +104,7 @@
 
   /* S5 解答：求极值 */
   QB.register({
-    id: 'solve-S5', type: 'mvt', difficulty: 'medium', kind: 'solve', tech: '极值',
+    id: 'solve-S5', type: 'mvt', difficulty: 'medium', kind: 'solve', form: 'solution', tech: '极值',
     gen: function (rng) {
       return mk({
         params: {},
@@ -129,7 +129,7 @@
 
   /* S6 解答：凹凸与拐点 */
   QB.register({
-    id: 'solve-S6', type: 'mvt', difficulty: 'medium', kind: 'solve', tech: '凹凸与拐点',
+    id: 'solve-S6', type: 'mvt', difficulty: 'medium', kind: 'solve', form: 'solution', tech: '凹凸与拐点',
     gen: function (rng) {
       return mk({
         params: {},
@@ -154,7 +154,7 @@
 
   /* S7 解答：分部积分 */
   QB.register({
-    id: 'solve-S7', type: 'indint', difficulty: 'hard', kind: 'solve', tech: '分部积分',
+    id: 'solve-S7', type: 'indint', difficulty: 'hard', kind: 'solve', form: 'solution', tech: '分部积分',
     gen: function (rng) {
       return mk({
         params: {},
@@ -177,7 +177,7 @@
 
   /* S8 解答：定积分换元 */
   QB.register({
-    id: 'solve-S8', type: 'defint', difficulty: 'medium', kind: 'solve', tech: '换元法',
+    id: 'solve-S8', type: 'defint', difficulty: 'medium', kind: 'solve', form: 'solution', tech: '换元法',
     gen: function (rng) {
       return mk({
         params: {},
@@ -200,7 +200,7 @@
 
   /* S9 证明：奇函数对称区间积分为 0 */
   QB.register({
-    id: 'solve-S9', type: 'defint', difficulty: 'hard', kind: 'solve', tech: '奇偶性',
+    id: 'solve-S9', type: 'defint', difficulty: 'hard', kind: 'solve', form: 'proof', tech: '奇偶性',
     gen: function (rng) {
       return mk({
         params: {},
@@ -219,6 +219,96 @@
             t: '两项相消，得证。' }
         ],
         pitfall: '换元时上下限和符号一起变：$x=-t$ 时 $\\mathrm{d}x=-\\mathrm{d}t$，这两处都要处理。'
+      });
+    }
+  });
+
+  /* S10 解答：旋转体体积 */
+  QB.register({
+    id: 'solve-S10', type: 'defapp', difficulty: 'medium', kind: 'solve', form: 'solution', tech: '旋转体体积',
+    gen: function (rng) {
+      return mk({
+        params: {},
+        question: '求曲线 $y=\\sqrt{x}$（$0\\le x\\le 1$）与 $x$ 轴围成的图形绕 $x$ 轴旋转一周所得旋转体的体积（写出积分过程）。',
+        options: [], answerIndex: -1,
+        answer: '$V=\\pi\\int_0^1(\\sqrt{x})^2\\mathrm{d}x=\\pi\\int_0^1 x\\,\\mathrm{d}x=\\frac{\\pi}{2}$。',
+        idea: '圆盘法：$V=\\pi\\int y^2\\mathrm{d}x$。半径是 $y=\\sqrt{x}$，平方后正好是 $x$。',
+        steps: [
+          { m: 'V = \\pi\\int_0^{1} y^2\\,\\mathrm{d}x = \\pi\\int_0^{1} x\\,\\mathrm{d}x',
+            t: '半径为 $\\sqrt{x}$，截面面积 $\\pi x$。' },
+          { m: '= \\pi\\cdot\\frac{x^2}{2}\\bigg|_0^1 = \\frac{\\pi}{2}',
+            t: '$x$ 的原函数是 $\\frac{x^2}{2}$，代入上下限。' }
+        ],
+        pitfall: '半径要平方：$(\\sqrt{x})^2=x$，不是 $\\sqrt{x}$。'
+      });
+    }
+  });
+
+  /* S11 解答：两曲线围成面积 */
+  QB.register({
+    id: 'solve-S11', type: 'defapp', difficulty: 'hard', kind: 'solve', form: 'solution', tech: '两曲线面积',
+    gen: function (rng) {
+      return mk({
+        params: {},
+        question: '求由曲线 $y=x^2$ 与直线 $y=2x$ 所围成平面图形的面积（写出积分过程）。',
+        options: [], answerIndex: -1,
+        answer: '$\\int_0^2(2x-x^2)\\mathrm{d}x=\\left[x^2-\\frac{x^3}{3}\\right]_0^2=4-\\frac{8}{3}=\\frac{4}{3}$。',
+        idea: '先求交点定区间，再"上减下"积分：直线在抛物线之上。',
+        steps: [
+          { m: 'x^2 = 2x \\Rightarrow x=0,2',
+            t: '解交点：$x=0$ 和 $x=2$。' },
+          { m: 'S = \\int_0^2 (2x-x^2)\\,\\mathrm{d}x',
+            t: '在 $(0,2)$ 内 $2x>x^2$，所以上减下是 $2x-x^2$。' },
+          { m: '= \\left[x^2-\\frac{x^3}{3}\\right]_0^2 = 4-\\frac{8}{3} = \\frac{4}{3}',
+            t: '积分并代入上下限。' }
+        ],
+        pitfall: '被积函数是"上面的减下面的"，别写成 $x^2-2x$（会得到负数）。'
+      });
+    }
+  });
+
+  /* S12 解答：初值问题 */
+  QB.register({
+    id: 'solve-S12', type: 'ode', difficulty: 'medium', kind: 'solve', form: 'solution', tech: '初值问题',
+    gen: function (rng) {
+      return mk({
+        params: {},
+        question: '求微分方程 $y\\prime=2x$ 满足 $y(0)=1$ 的特解（写出过程）。',
+        options: [], answerIndex: -1,
+        answer: '通解 $y=x^2+C$；代入 $y(0)=1$ 得 $C=1$，故 $y=x^2+1$。',
+        idea: '两步走：先积分得通解，再用初始条件定常数 $C$。',
+        steps: [
+          { m: 'y = \\int 2x\\,\\mathrm{d}x = x^2+C',
+            t: '两边积分得到含任意常数的通解。' },
+          { m: 'y(0)=0+C=1 \\Rightarrow C=1',
+            t: '把 $x=0$、$y=1$ 代入求 $C$。' },
+          { m: 'y = x^2+1',
+            t: '代回通解得到特解。' }
+        ],
+        pitfall: '初始条件是用来求常数 $C$ 的，不是把 $C$ 换成 $x$。'
+      });
+    }
+  });
+
+  /* S13 解答：一阶线性方程 */
+  QB.register({
+    id: 'solve-S13', type: 'ode', difficulty: 'hard', kind: 'solve', form: 'solution', tech: '一阶线性',
+    gen: function (rng) {
+      return mk({
+        params: {},
+        question: '求微分方程 $y\\prime+y=e^{x}$ 的通解（写出过程）。',
+        options: [], answerIndex: -1,
+        answer: '积分因子 $e^{x}$，两边同乘得 $(ye^{x})\\prime=e^{2x}$，积分得 $ye^{x}=\\frac{e^{2x}}{2}+C$，故 $y=\\frac{e^{x}}{2}+Ce^{-x}$。',
+        idea: '一阶线性方程 $y\\prime+P y=Q$ 用积分因子：乘 $e^{\\int P\\mathrm{d}x}$，左边会凑成乘积的导数。',
+        steps: [
+          { m: 'e^{\\int 1\\,\\mathrm{d}x} = e^{x}',
+            t: '$P=1$，积分因子是 $e^{x}$。' },
+          { m: 'y\\prime e^{x}+y e^{x} = e^{2x} \\Rightarrow (ye^{x})\\prime = e^{2x}',
+            t: '两边同乘 $e^x$，左边正好是 $(ye^x)\\prime$。' },
+          { m: 'ye^{x} = \\frac{e^{2x}}{2}+C \\Rightarrow y=\\frac{e^{x}}{2}+Ce^{-x}',
+            t: '两边积分，再除以 $e^x$ 得到通解。' }
+        ],
+        pitfall: '最后除以 $e^x$ 时，常数 $C$ 变成 $Ce^{-x}$，指数是负的。'
       });
     }
   });
