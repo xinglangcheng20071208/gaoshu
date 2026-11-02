@@ -21,10 +21,10 @@
   function defaultState() {
     return {
       version: 1,
-      settings: { difficulty: 'medium', theme: 'light', dailyTypes: [] }, // dailyTypes 空 = 全部题型
+      settings: { difficulty: 'medium', theme: 'light', dailyTypes: [], dailyForms: [] }, // 空 = 全部
       types: {},
       daily: {},
-      custom: { settings: { typeIds: [], difficulty: 'mixed', count: 10 }, set: null },
+      custom: { settings: { typeIds: [], difficulty: 'mixed', count: 10, forms: [] }, set: null },
       redo: null,   // 错题重做会话 { questions:[], answers:{}, sourceIds:[] }
       history: [],
       wrongbook: []
@@ -40,10 +40,12 @@
       // 防御：补齐缺的字段
       if (!s.settings) s.settings = { difficulty: 'medium', theme: 'light' };
       if (s.settings.dailyTypes === undefined) s.settings.dailyTypes = [];
+      if (s.settings.dailyForms === undefined) s.settings.dailyForms = [];
       if (!s.types) s.types = {};
       if (!s.daily) s.daily = {};
-      if (!s.custom) s.custom = { settings: { typeIds: [], difficulty: 'mixed', count: 10 }, set: null };
-      if (!s.custom.settings) s.custom.settings = { typeIds: [], difficulty: 'mixed', count: 10 };
+      if (!s.custom) s.custom = { settings: { typeIds: [], difficulty: 'mixed', count: 10, forms: [] }, set: null };
+      if (!s.custom.settings) s.custom.settings = { typeIds: [], difficulty: 'mixed', count: 10, forms: [] };
+      if (s.custom.settings.forms === undefined) s.custom.settings.forms = [];
       if (s.redo === undefined) s.redo = null;
       if (!s.history) s.history = [];
       if (!s.wrongbook) s.wrongbook = [];
