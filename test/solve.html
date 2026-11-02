@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLVE-TEST</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-theme="light">
+<header class="topbar">
+  <div class="brand"><span class="logo">∫</span><div class="brand-txt"><div class="brand-name">高数刷题营</div><div class="brand-sub">解答题流程自测</div></div></div>
+  <button id="themeBtn" class="icon-btn">🌙</button>
+</header>
+<nav class="tabs" id="tabs"></nav>
+<main id="app"></main>
+<footer class="foot"><button id="resetBtn" class="foot-btn">重置全部数据</button></footer>
+<div id="result" style="display:none">PENDING</div>
+
+<script src="../js/katex-fallback.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/qb-limit.js"></script>
+<script src="../js/qb-derivative.js"></script>
+<script src="../js/qb-app.js"></script>
+<script src="../js/qb-integral.js"></script>
+<script src="../js/qb-extra.js"></script>
+<script src="../js/qb-more.js"></script>
+<script src="../js/qb-more2.js"></script>
+<script src="../js/qb-solve.js"></script>
+<script src="../js/scheduler.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/app.js"></script>
+<script>
+var results = [];
+var errs = [];
+var choiceQ = null;
+window.addEventListener('error', function (e) { errs.push((e.message || '?') + ' @' + (e.lineno || 0)); });
+function log(name, ok, extra) { results.push((ok ? 'PASS' : 'FAIL') + ' ' + name + (extra ? ' | ' + extra : '')); }
+function click(el) { el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }
+function step(fn, ms) { setTimeout(fn, ms); }
+function finish() {
+  document.getElementById('result').textContent = 'RESULTS::' + results.join(';;') + ';;ERRS::' + errs.join('||');
+  document.title = 'SOLVE-DONE';
+}
+document.addEventListener('DOMContentLoaded', function () {
+  window.__initApp();
+  // 构造一道解答题 + 一道选择题，验证两种题型混排
+  var solveTpl = QuestionBank.templates.filter(function (t) { return t.kind === 'solve'; })[0];
+  var sq = solveTpl.gen(Math.random);
+  sq.qid = 'solve-test-1'; sq.tpl = solveTpl.id; sq.typeId = solveTpl.type;
+  sq.difficulty = solveTpl.difficulty; sq.kind = 'solve'; sq.tech = solveTpl.tech || '';
+  sq.sig = QuestionBank.sigOf(solveTpl.id, sq.params); sq.dueReason = '解答题测试';
+
+  var choiceTpl = QuestionBank.templates.filter(function (t) { return t.kind !== 'solve'; })[0];
+  choiceQ = choiceTpl.gen(Math.random);
+  choiceQ.qid = 'choice-test-1'; choiceQ.tpl = choiceTpl.id; choiceQ.typeId = choiceTpl.type;
+  choiceQ.difficulty = choiceTpl.difficulty; choiceQ.kind = 'choice'; choiceQ.tech = choiceTpl.tech || '';
+  choiceQ.sig = QuestionBank.sigOf(choiceTpl.id, choiceQ.params); choiceQ.dueReason = '选择题测试';
+
+  window.__appDebug.setDailyQuestions([sq, choiceQ]);
+  setTimeout(run, 800);
+});
+setTimeout(finish, 25000);
+function run() {
+  try {
+    log('solve-card-shown', !!document.querySelector('.qcard'));
+    log('no-options-on-solve', document.querySelectorAll('.opt').length === 0, 'opts=' + document.querySelectorAll('.opt').length);
+    var btn = document.querySelector('[data-solvedone]');
+    log('solvedone-btn', !!btn, btn ? btn.textContent.trim() : '');
+    log('no-submit-btn', !document.querySelector('[data-submit]'));
+    log('solve-chip', !!document.querySelector('.chip-solve'));
+    log('marks-available', !!document.querySelector('.mark-btn[data-mark="not_mastered"]'));
+    click(btn);
+    step(function () {
+      log('answer-revealed', !!document.querySelector('.qc-solve-answer'));
+      log('solution-revealed', !!document.querySelector('.qc-solution'));
+      log('steps-list', document.querySelectorAll('.sol-steps li').length >= 2);
+      var st = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+      var dk = Object.keys(st.daily)[0];
+      var ans = st.daily[dk].answers['solve-test-1'] || {};
+      log('answered-flag', ans.submitted === true);
+      var h = st.history[st.history.length - 1];
+      log('history-correct-null', h && h.correct === null, h ? String(h.correct) : 'no-hist');
+      log('history-kind-solve', h && h.kind === 'solve');
+      log('dot-done', !!document.querySelector('.dot.done'));
+      // 切到第 2 题（选择题）
+      click(document.querySelector('.dot[data-go="1"]'));
+      step(function () {
+        log('choice-options-4', document.querySelectorAll('.opt').length === 4);
+        var rightIdx = choiceQ.answerIndex;
+        click(document.querySelectorAll('.opt')[rightIdx]);
+        step(function () {
+          click(document.querySelector('[data-submit]'));
+          step(function () {
+            log('summary-shown', !!document.querySelector('.summary'));
+            var sumTxt = document.querySelector('.summary') ? document.querySelector('.summary').textContent : '';
+            log('summary-solve-count', sumTxt.indexOf('已完成 1/1') >= 0 || /已完成\s*1\s*\/\s*1/.test(sumTxt));
+            log('summary-choice-score', /1\s*\/\s*1 选择题正确率 100%/.test(sumTxt));
+            finish();
+          }, 200);
+        }, 200);
+      }, 200);
+    }, 200);
+  } catch (e) {
+    log('exception', false, e.message);
+    finish();
+  }
+}
+</script>
+</body>
+</html>
