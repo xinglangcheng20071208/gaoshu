@@ -339,6 +339,7 @@
     html += '<div class="qc-head">' +
       '<span class="qc-no">第 ' + (idx + 1) + '/' + d.questions.length + ' 题</span>' +
       typeBadge(q.typeId) + diffBadge(q.difficulty) +
+      (q.tech ? '<span class="chip chip-tech" title="本题考察的方法">' + esc(q.tech) + '</span>' : '') +
       '<span class="chip chip-reason">' + esc(q.dueReason) + '</span></div>';
     html += marksHtml;
     html += '<div class="qc-question">' + mathHtml(q.question, true) + '</div>';
