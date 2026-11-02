@@ -123,6 +123,8 @@ body {
   border-radius: 8px; padding: 2px 10px; font-size: 12px;
 }
 .chip i { font-style: normal; color: var(--muted); font-size: 11px; }
+.chip-tech { --tc: #7c3aed; }
+.chip-reason { --tc: var(--muted); }
 
 /* ---------- 题目卡片 ---------- */
 .qc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
