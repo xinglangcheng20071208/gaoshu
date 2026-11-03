@@ -60,16 +60,33 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
-  /* ---------- 题型元数据 ---------- */
+  /* ---------- 题型元数据（semester: 1 大一上 / 2 大一下） ---------- */
   var TYPES = {
-    limit:      { name: '极限与连续',     short: '极限',     icon: '∞',  color: '#6366f1' },
-    derivative: { name: '导数与微分',     short: '导数',     icon: '′',  color: '#0ea5e9' },
-    mvt:        { name: '中值定理与导数应用', short: '中值定理', icon: '↗', color: '#f59e0b' },
-    indint:     { name: '不定积分',       short: '不定积分', icon: '∫',  color: '#10b981' },
-    defint:     { name: '定积分',         short: '定积分',   icon: '∮',  color: '#14b8a6' },
-    defapp:     { name: '定积分的应用',   short: '积分应用', icon: '⌀',  color: '#8b5cf6' },
-    ode:        { name: '微分方程',       short: '微分方程', icon: 'y′', color: '#ef4444' }
+    /* 大一上：一元微积分 */
+    limit:      { name: '极限与连续',     short: '极限',     icon: '∞',  color: '#6366f1', semester: 1 },
+    derivative: { name: '导数与微分',     short: '导数',     icon: '′',  color: '#0ea5e9', semester: 1 },
+    mvt:        { name: '中值定理与导数应用', short: '中值定理', icon: '↗', color: '#f59e0b', semester: 1 },
+    indint:     { name: '不定积分',       short: '不定积分', icon: '∫',  color: '#10b981', semester: 1 },
+    defint:     { name: '定积分',         short: '定积分',   icon: '∮',  color: '#14b8a6', semester: 1 },
+    defapp:     { name: '定积分的应用',   short: '积分应用', icon: '⌀',  color: '#8b5cf6', semester: 1 },
+    ode:        { name: '微分方程',       short: '微分方程', icon: 'y′', color: '#ef4444', semester: 1 },
+    /* 大一下：多元微积分与级数 */
+    vector:     { name: '向量与空间解析几何', short: '向量', icon: '→', color: '#f43f5e', semester: 2 },
+    multivar:   { name: '多元函数微分学', short: '多元微分', icon: '∂', color: '#0d9488', semester: 2 },
+    doubleint:  { name: '重积分',         short: '重积分',   icon: '∬',  color: '#7c3aed', semester: 2 },
+    lineint:    { name: '曲线积分与格林公式', short: '曲线积分', icon: '∮', color: '#c026d3', semester: 2 },
+    series:     { name: '无穷级数',       short: '级数',     icon: '∑',  color: '#ea580c', semester: 2 },
+    ode2:       { name: '二阶常系数微分方程', short: '二阶方程', icon: 'y″', color: '#b91c1c', semester: 2 }
   };
+
+  var SEMESTERS = {
+    1: { name: '大一上', desc: '一元微积分：极限、导数、积分、微分方程' },
+    2: { name: '大一下', desc: '多元微积分与级数：向量、多元微分、重积分、曲线积分、级数、二阶方程' }
+  };
+
+  function typesOfSemester(sem) {
+    return Object.keys(TYPES).filter(function (t) { return TYPES[t].semester === sem; });
+  }
 
   var DIFFICULTIES = {
     easy:   { name: '基础', color: '#10b981', desc: '一步公式，直接套用' },
@@ -155,6 +172,8 @@
   /* ---------- 导出 ---------- */
   return {
     types: TYPES,
+    semesters: SEMESTERS,
+    typesOfSemester: typesOfSemester,
     difficulties: DIFFICULTIES,
     templates: templates,
     register: register,
