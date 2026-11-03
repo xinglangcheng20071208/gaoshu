@@ -21,6 +21,7 @@ require('../js/qb-more.js');
 require('../js/qb-more2.js');
 require('../js/qb-solve.js');
 require('../js/qb-sem2.js');
+require('../js/qb-gaokao.js');
 
 let fails = [];
 let checks = 0;
@@ -108,7 +109,14 @@ for (const tpl of QB.templates) {
     const blob = JSON.stringify(q);
     if (/NaN|undefined/.test(blob)) { bad(tpl.id + ' 内容含 NaN/undefined'); issues++; }
     // 选项检查（选择题）
-    if (tpl.kind !== 'solve') {
+    if (tpl.kind === 'solve') {
+      if (q.options && q.options.length) { bad(tpl.id + ' 解答题不应有选项'); issues++; }
+      const hasAnswerLike = typeof q.answer === 'string' && q.answer.length > 4;
+      if (!hasAnswerLike) { bad(tpl.id + ' 解答题答案过短'); issues++; }
+    } else if (tpl.kind === 'fill') {
+      if (q.options && q.options.length) { bad(tpl.id + ' 填空题不应有选项'); issues++; }
+      if (!q.answer || typeof q.answer !== 'string') { bad(tpl.id + ' 填空题缺少答案'); issues++; }
+    } else {
       if (!Array.isArray(q.options) || q.options.length !== 4) { bad(tpl.id + ' 选项数不为4'); issues++; }
       else {
         if (new Set(q.options).size !== 4) { bad(tpl.id + ' 选项字符串重复: ' + JSON.stringify(q.options)); issues++; }
@@ -127,10 +135,6 @@ for (const tpl of QB.templates) {
           }
         }
       }
-    } else {
-      if (q.options && q.options.length) { bad(tpl.id + ' 解答题不应有选项'); issues++; }
-      const hasAnswerLike = typeof q.answer === 'string' && q.answer.length > 4;
-      if (!hasAnswerLike) { bad(tpl.id + ' 解答题答案过短'); issues++; }
     }
     if (issues > 3) break; // 单模板问题太多，避免刷屏
   }
