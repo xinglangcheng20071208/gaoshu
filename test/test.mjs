@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 高数刷题营 - Node 自测脚本
  * 1) 对全部模板大规模生成题目，用独立公式重算答案（验证正确率）
  * 2) 验证 4 个选项互不相同、正确答案在选项中
@@ -18,6 +18,7 @@ require('../js/qb-extra.js');
 require('../js/qb-more.js');
 require('../js/qb-more2.js');
 require('../js/qb-solve.js');
+require('../js/qb-sem2.js');
 const S = require('../js/scheduler.js');
 
 /* ---------- 独立的小工具（与 core.js 分开实现） ---------- */
@@ -172,7 +173,7 @@ const V = {
   'ode-O15': q => 'e^{' + q.params.k + 'x^2}',
 
   /* ---- 解答题 / 证明题（无选项，点「已完成」看答案） ---- */
-  'solve-S1': () => '对任意 $\\varepsilon>0$，取 $\\delta=\\frac{\\varepsilon}{3}$，当 $0<|x-2|<\\delta$ 时，$|(3x-1)-5|=3|x-2|<3\\delta=\\varepsilon$，故 $\\lim_{x\\to 2}(3x-1)=5$。',
+  'solve-S1': () => '对任意 $\\varepsilon>0$，取 $\\delta=\\frac{\\varepsilon}{3}$，当 $0<|x-2|<\\delta$ 时，$|(3x-1)-5|=3|x-2|<3\\delta=\\varepsilon$，故 $\\lim\\limits_{x\\to 2}(3x-1)=5$。',
   'solve-S2': () => '令 $f(x)=x^3-3x+1$，它在 $[0,1]$ 上连续，且 $f(0)=1>0$、$f(1)=-1<0$，由零点定理，存在 $\\xi\\in(0,1)$ 使 $f(\\xi)=0$，即方程在 $(0,1)$ 内至少有一个根。',
   'solve-S3': () => '$f$ 在 $[0,1]$ 与 $[1,2]$ 上分别满足罗尔定理条件（连续、可导、端点值相等），故存在 $c_1\\in(0,1)$、$c_2\\in(1,2)$ 使 $f\\prime(c_1)=f\\prime(c_2)=0$，且 $c_1\\neq c_2$。',
   'solve-S4': () => '令 $f(x)=x-\\sin x$，则 $f\\prime(x)=1-\\cos x\\ge 0$，且等号只在孤立点成立，故 $f$ 在 $[0,+\\infty)$ 上严格单调递增；又 $f(0)=0$，所以 $x>0$ 时 $f(x)>0$，即 $\\sin x<x$。',
@@ -184,7 +185,58 @@ const V = {
   'solve-S10': () => '$V=\\pi\\int_0^1(\\sqrt{x})^2\\mathrm{d}x=\\pi\\int_0^1 x\\,\\mathrm{d}x=\\frac{\\pi}{2}$。',
   'solve-S11': () => '$\\int_0^2(2x-x^2)\\mathrm{d}x=\\left[x^2-\\frac{x^3}{3}\\right]_0^2=4-\\frac{8}{3}=\\frac{4}{3}$。',
   'solve-S12': () => '通解 $y=x^2+C$；代入 $y(0)=1$ 得 $C=1$，故 $y=x^2+1$。',
-  'solve-S13': () => '积分因子 $e^{x}$，两边同乘得 $(ye^{x})\\prime=e^{2x}$，积分得 $ye^{x}=\\frac{e^{2x}}{2}+C$，故 $y=\\frac{e^{x}}{2}+Ce^{-x}$。'
+  'solve-S13': () => '积分因子 $e^{x}$，两边同乘得 $(ye^{x})\\prime=e^{2x}$，积分得 $ye^{x}=\\frac{e^{2x}}{2}+C$，故 $y=\\frac{e^{x}}{2}+Ce^{-x}$。',
+
+  /* ---- 大一下：向量与空间解析几何 ---- */
+  'vector-V1': q => String(q.params.a1 * q.params.b1 + q.params.a2 * q.params.b2 + q.params.a3 * q.params.b3),
+  'vector-V2': q => String(q.params.A * q.params.B * (q.params.deg === 60 ? 0.5 : -0.5)),
+  'vector-V3': q => q.params.a + '(x-' + q.params.x0 + ')' + signed(q.params.b) + '(y-' + q.params.y0 + ')' + signed(q.params.c) + '(z-' + q.params.z0 + ')=0',
+  'vector-V4': () => '平行（直线不在平面内）',
+  'vector-V5': q => frac(Math.abs(q.params.px + 2 * q.params.py + 2 * q.params.pz - q.params.k), 3),
+
+  /* ---- 大一下：多元函数微分学 ---- */
+  'multivar-M1': q => String(2 * q.params.a * q.params.b + q.params.b * q.params.b),
+  'multivar-M2': () => '(2x+y)\\mathrm{d}x+(x+2y)\\mathrm{d}y',
+  'multivar-M3': q => frac(-q.params.a, q.params.c),
+  'multivar-M4': q => '(' + q.params.a + ',' + q.params.b + ')',
+  'multivar-M5': q => String(q.params.s * q.params.s / 2),
+  'multivar-M6': q => Math.pow(q.params.a, q.params.b) + '\\ln ' + q.params.a,
+
+  /* ---- 大一下：重积分 ---- */
+  'doubleint-DI1': q => String(q.params.c * q.params.a * q.params.b),
+  'doubleint-DI2': q => frac(q.params.a * q.params.a * q.params.b, 2),
+  'doubleint-DI3': () => '\\int_0^1\\mathrm{d}y\\int_0^{y}f(x,y)\\,\\mathrm{d}x',
+  'doubleint-DI4': q => { const a = q.params.a; return a === 1 ? '\\frac{\\pi}{2}' : (a * a * a * a / 2) + '\\pi'; },
+  'doubleint-DI5': () => '(e-1)^2',
+
+  /* ---- 大一下：曲线积分与格林公式 ---- */
+  'lineint-L1': q => String(q.params.len),
+  'lineint-L2': q => frac(q.params.a * q.params.a, 2),
+  'lineint-L3': q => (2 * q.params.a * q.params.a) + '\\pi',
+  'lineint-L4': () => '\\frac{\\partial P}{\\partial y}=\\frac{\\partial Q}{\\partial x}',
+
+  /* ---- 大一下：无穷级数 ---- */
+  'series-S1': q => frac(1, q.params.qn - 1),
+  'series-S2': () => 'p>1',
+  'series-S3': () => '1',
+  'series-S4': () => '收敛',
+  'series-S5': () => '+\\infty',
+  'series-S6': () => '(-1,3)',
+
+  /* ---- 大一下：二阶常系数微分方程 ---- */
+  'ode2-O21': q => 'C_1e^{' + q.params.r1 + 'x}+C_2e^{' + q.params.r2 + 'x}',
+  'ode2-O22': q => '(C_1+C_2x)e^{' + q.params.k + 'x}',
+  'ode2-O23': () => 'C_1\\cos x+C_2\\sin x',
+  'ode2-O24': () => '(C_1+C_2x)e^{-x}',
+  'ode2-O25': () => 'y^*=x',
+
+  /* ---- 大一下：解答/证明题（无选项） ---- */
+  'solve-SV1': () => '设 $\\vec{a}=(a_1,a_2,a_3)$，则 $\\vec{a}\\cdot\\vec{a}=a_1^2+a_2^2+a_3^2=|\\vec{a}|^{2}$，证毕。',
+  'solve-SV2': () => '$\\mathrm{d}z=2xy\\,\\mathrm{d}x+x^2\\,\\mathrm{d}y$，在 $(1,2)$ 处 $\\mathrm{d}z=4\\,\\mathrm{d}x+\\mathrm{d}y$。',
+  'solve-SV3': () => '$\\int_0^2\\mathrm{d}y\\int_0^1 x\\,\\mathrm{d}x=2\\cdot\\frac{1}{2}=1$。',
+  'solve-SV4': () => '参数化 $x=t,\\ y=t$（$0\\le t\\le1$），$\\mathrm{d}s=\\sqrt2\\,\\mathrm{d}t$，故 $\\int_L x\\,\\mathrm{d}s=\\sqrt2\\int_0^1 t\\,\\mathrm{d}t=\\frac{\\sqrt2}{2}$。',
+  'solve-SV5': () => '当 $n\\ge2$ 时 $\\frac{1}{n^2}\\le\\frac{1}{n(n-1)}=\\frac{1}{n-1}-\\frac{1}{n}$，而 $\\sum\\frac{1}{n(n-1)}$ 收敛（裂项），由比较判别法原级数收敛。',
+  'solve-SV6': () => '特征方程 $r^2-1=0$ 得 $r=\\pm1$，故 $y=C_1e^{x}+C_2e^{-x}$。'
 };
 
 /* ---------- 测试 1：模板大规模生成 + 独立答案验证 ---------- */
@@ -295,7 +347,7 @@ console.log('\n--- 每日组卷 ---');
 const set = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(42) });
 check(set.questions.length === 10, '每日应生成10题');
 check(new Set(set.questions.map(q => q.qid)).size === 10, '同套题 qid 不应重复');
-check(Object.keys(set.used).length === 7, '应覆盖全部7个题型');
+check(Object.keys(set.used).length === 10, '10 题应覆盖 10 个题型');
 check(set.questions.every(q => q.difficulty === 'medium'), '所有题难度应为所选难度');
 
 // 未掌握优先
@@ -319,7 +371,7 @@ const full = {};
 for (const t of Object.keys(QB.types)) full[t] = S.applyMark({}, 'not_mastered', D);
 const set3 = S.buildDaily({ typesState: full, today: d1, difficulty: 'hard', count: 10, rng: QB.mulberry32(9) });
 const used3 = Object.keys(set3.used);
-check(used3.length === 7, '全部未掌握时第二天10题应覆盖7个题型');
+check(used3.length === 10, '全部未掌握时第二天10题应覆盖10个题型');
 for (const t of used3) {
   const after = S.afterShow(full[t], d1);
   check(after.nmDays === 2, t + ' 连续第2天后 nmDays 应为 2');
@@ -341,7 +393,7 @@ check(sel1.questions.every(q => q.typeId === 'limit' || q.typeId === 'mvt'), '�
 const sel2 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 6, rng: QB.mulberry32(43), typeIds: ['indint'] });
 check(sel2.questions.every(q => q.typeId === 'indint'), '单选题型组卷应全部为该题型');
 const sel3 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(45) });
-check(Object.keys(sel3.used).length === 7, '未选题型时应保持覆盖全部题型');
+check(Object.keys(sel3.used).length === 10, '未选题型时应保持覆盖 10 个题型');
 
 /* ---------- 测试 6.6：按题型形式组卷（选择题/解答题/证明题） ---------- */
 console.log('\n--- 题型形式 ---');
@@ -358,8 +410,8 @@ const form5 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', cou
 check(form5.questions.every(q => q.form !== 'choice'), '只选证明题时不应出现选择题（可用解答题兜底）: ' + form5.questions.map(q => q.form).join(','));
 const form6 = S.buildCustom({ typeIds: ['indint'], difficulty: 'medium', count: 5, rng: QB.mulberry32(57), forms: ['proof'] });
 check(form6.questions.every(q => q.form !== 'choice'), '无证明题模板的章节应回退为解答题而非选择题: ' + form6.questions.map(q => q.form).join(','));
-// 每个题型都至少有一种解答/证明题（保证"只选解答题"时任何题型都有得练）
-for (const t of Object.keys(QB.types)) {
+// 大一上 7 个章节都至少有一种解答/证明题（保证"只选解答题"时这些章节都有得练）
+for (const t of QB.typesOfSemester(1)) {
   const anySolve = QB.templates.some(tpl => tpl.type === t && (tpl.form === 'solution' || tpl.form === 'proof'));
   check(anySolve, '题型 ' + t + ' 缺少解答/证明题模板');
 }
@@ -369,16 +421,37 @@ const diffSet = new Set(c2.questions.map(q => q.difficulty));
 check(diffSet.has('easy') && diffSet.has('medium') && diffSet.has('hard'), '混合难度应覆盖三种难度: ' + [...diffSet].join(','));
 
 const c3 = S.buildCustom({ typeIds: [], difficulty: 'medium', count: 10, rng: QB.mulberry32(31) });
-check(Object.keys(c3.used).length === 7, '未选题型时应默认覆盖全部题型');
+check(Object.keys(c3.used).length === 10, '未选题型时应默认覆盖 10 个题型');
 
 const c4 = S.buildCustom({ typeIds: ['defapp'], difficulty: 'mixed', count: 8, rng: QB.mulberry32(37) });
 check(c4.questions.every(q => q.typeId === 'defapp'), '单选题型专项应全部为该题型');
 
+/* ---------- 测试 6.7：学期选择 ---------- */
+console.log('\n--- 学期选择 ---');
+check(QB.typesOfSemester(1).length === 7, '大一上应有 7 个章节，实际 ' + QB.typesOfSemester(1).length);
+check(QB.typesOfSemester(2).length === 6, '大一下应有 6 个章节，实际 ' + QB.typesOfSemester(2).length);
+const sem2 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(61), typeIds: QB.typesOfSemester(2) });
+check(sem2.questions.every(q => QB.typesOfSemester(2).indexOf(q.typeId) >= 0), '按大一下组卷应只包含大一下章节: ' + sem2.questions.map(q => q.typeId).join(','));
+check(Object.keys(sem2.used).length === 6, '大一下 10 题应覆盖 6 个章节，实际 ' + Object.keys(sem2.used).length);
+const sem2c = S.buildCustom({ typeIds: QB.typesOfSemester(2), difficulty: 'mixed', count: 12, rng: QB.mulberry32(63) });
+check(sem2c.questions.every(q => QB.typesOfSemester(2).indexOf(q.typeId) >= 0), '专项（大一下）组卷应只包含大一下章节');
+// 大一下每章都覆盖三个难度
+for (const t of QB.typesOfSemester(2)) {
+  const ds = ['easy', 'medium', 'hard'].map(dd => QB.templatesOf(t, dd).length);
+  check(ds.every(n => n >= 1), '大一下章节 ' + t + ' 难度覆盖不全: ' + ds.join('/'));
+}
+
 /* ---------- 测试 7：举一反三去重 ---------- */
 console.log('\n--- 举一反三去重 ---');
 // 7.1 生成器 avoid：避开指定原题标签后，生成的一定不是原题
+//     （纯固定题模板——参数为空——本身无法生成"不同题"，跳过）
 let avoidOk = true;
 for (const tpl of QB.templates) {
+  const pool = QB.templatesOf(tpl.type, tpl.difficulty);
+  const hasVariation = pool.some(t => {
+    try { return Object.keys(t.gen(QB.mulberry32(777)).params || {}).length > 0; } catch (e) { return false; }
+  });
+  if (!hasVariation) continue;
   const rng0 = QB.mulberry32(555);
   const q0 = tpl.gen(rng0);
   q0.qid = 'x'; q0.tpl = tpl.id; q0.typeId = tpl.type;
