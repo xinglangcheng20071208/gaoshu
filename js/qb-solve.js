@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 解答题 / 证明题题库（kind: 'solve'）
  * 只给题目，无选项；用户点「已完成」后展示答案与解析
  * ============================================================ */
@@ -14,9 +14,9 @@
     gen: function (rng) {
       return mk({
         params: {},
-        question: '用极限的 $\\varepsilon-\\delta$ 定义证明：$\\lim_{x\\to 2}(3x-1)=5$。',
+        question: '用极限的 $\\varepsilon-\\delta$ 定义证明：$\\lim\\limits_{x\\to 2}(3x-1)=5$。',
         options: [], answerIndex: -1,
-        answer: '对任意 $\\varepsilon>0$，取 $\\delta=\\frac{\\varepsilon}{3}$，当 $0<|x-2|<\\delta$ 时，$|(3x-1)-5|=3|x-2|<3\\delta=\\varepsilon$，故 $\\lim_{x\\to 2}(3x-1)=5$。',
+        answer: '对任意 $\\varepsilon>0$，取 $\\delta=\\frac{\\varepsilon}{3}$，当 $0<|x-2|<\\delta$ 时，$|(3x-1)-5|=3|x-2|<3\\delta=\\varepsilon$，故 $\\lim\\limits_{x\\to 2}(3x-1)=5$。',
         idea: 'ε-δ 证明的套路：***任给* ε>0，**自己找一个** δ（通常从要证的式子反推出来），证明当距离小于 δ 时误差小于 ε。',
         steps: [
           { m: '|(3x-1)-5| = |3x-6| = 3|x-2|',
