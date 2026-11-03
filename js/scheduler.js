@@ -165,6 +165,41 @@
     return { questions: questions, used: used, lastSigs: lastSigs };
   }
 
+  // 北京高考每日练习：按卷面题型配比（选择 6 / 填空 3 / 解答 1）
+  function buildGaokaoDaily(opts) {
+    opts = opts || {};
+    var typesState = opts.typesState || {};
+    var today = opts.today;
+    var difficulty = opts.difficulty || 'medium';
+    var rng = opts.rng || Math.random;
+    var avoidMap = opts.avoidMap || {};
+    var plan = opts.plan || [['gkChoice', 6], ['gkFill', 3], ['gkSolve', 1]];
+    var due = dueList(typesState, today).filter(function (u) {
+      return QB.types[u.typeId] && QB.types[u.typeId].track === 'gaokao';
+    });
+    var questions = [];
+    var used = {};
+    var lastSigs = {};
+    var usedSigs = [];
+    plan.forEach(function (pair) {
+      for (var i = 0; i < pair[1]; i++) {
+        var q = QB.generate({
+          typeId: pair[0], difficulty: difficulty, rng: rng,
+          avoid: (avoidMap[pair[0]] || []).concat(usedSigs)
+        });
+        usedSigs.push(q.sig);
+        lastSigs[pair[0]] = q.sig;
+        used[pair[0]] = (used[pair[0]] || 0) + 1;
+        q.dailyIndex = questions.length + 1;
+        var dueItem = null;
+        for (var k = 0; k < due.length; k++) { if (due[k].typeId === pair[0]) { dueItem = due[k]; break; } }
+        q.dueReason = dueItem ? dueItem.reason : '北京高考模拟';
+        questions.push(q);
+      }
+    });
+    return { date: today, questions: questions, used: used, due: due, lastSigs: lastSigs };
+  }
+
   // 某题型下次到期日期（用于 UI 展示；null 表示无计划）
   function nextDue(typeState, today) {
     if (!typeState || !typeState.status || !typeState.lastShown) return { date: null, reason: '还未练过' };
@@ -183,6 +218,6 @@
     DAY: DAY,
     parseDate: parseDate, toDateStr: toDateStr, daysBetween: daysBetween, addDays: addDays,
     dueInfo: dueInfo, dueList: dueList, afterShow: afterShow, applyMark: applyMark,
-    buildDaily: buildDaily, buildCustom: buildCustom, nextDue: nextDue
+    buildDaily: buildDaily, buildCustom: buildCustom, buildGaokaoDaily: buildGaokaoDaily, nextDue: nextDue
   };
 });
