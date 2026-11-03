@@ -446,6 +446,88 @@
     }
   });
 
+  /* ================= 三重积分 ================= */
+
+  /* TI1 基础：长方体上常数积分 */
+  QB.register({
+    id: 'tripleint-TI1', type: 'tripleint', difficulty: 'easy',
+    gen: function (rng) {
+      for (var t = 0; t < 60; t++) {
+        var c = ri(2, 3, rng), a = ri(2, 3, rng), b = c === 2 ? 3 : 2, d0 = ri(2, 4, rng);
+        var correct = String(c * a * b * d0);
+        var dd = bo(correct, [String(c * a * b), String(a * b * d0), String(c * a)], rng);
+        if (!ok4(dd.options)) continue;
+        return {
+          params: { c: c, a: a, b: b, d0: d0 },
+          question: '计算 $\\iiint_\\Omega ' + c + '\\,\\mathrm{d}V$，其中 $\\Omega=[0,' + a + ']\\times[0,' + b + ']\\times[0,' + d0 + ']$。',
+          options: dd.options, answerIndex: dd.answerIndex, answer: dd.answer,
+          idea: '被积函数是常数，三重积分 = 常数 × 体积；长方体的体积是三边之积。',
+          steps: [
+            { m: 'V_\\Omega = ' + a + '\\times' + b + '\\times' + d0 + ' = ' + (a * b * d0),
+              t: '长方体体积 = 长×宽×高。' },
+            { m: '\\iiint_\\Omega ' + c + '\\mathrm{d}V = ' + c + '\\times' + (a * b * d0) + ' = ' + correct,
+              t: '常数乘体积。' }
+          ],
+          pitfall: '常数积分要乘的是"体积"（三个方向都算），不是面积。'
+        };
+      }
+      throw new Error('TI1 retry fail');
+    }
+  });
+
+  /* TI2 进阶：z 的三重积分 */
+  QB.register({
+    id: 'tripleint-TI2', type: 'tripleint', difficulty: 'medium',
+    gen: function (rng) {
+      var correct = '2';
+      var d = bo(correct, ['1', '4', '\\frac{1}{2}'], rng);
+      return {
+        params: {},
+        question: '计算 $\\iiint_\\Omega z\\,\\mathrm{d}V$，其中 $\\Omega=[0,1]\\times[0,1]\\times[0,2]$。',
+        options: d.options, answerIndex: d.answerIndex, answer: d.answer,
+        idea: '化成三次积分：$x$、$y$ 各给出长度 1，$z$ 从 0 到 2 积分。',
+        steps: [
+          { m: '\\int_0^1\\mathrm{d}x\\int_0^1\\mathrm{d}y\\int_0^2 z\\,\\mathrm{d}z',
+            t: '先积 $z$（内层），$x$、$y$ 外层各乘 1。' },
+          { m: '= 1\\cdot1\\cdot\\frac{2^2}{2} = 2',
+            t: '$\\int_0^2 z\\,\\mathrm{d}z=\\left.\\frac{z^2}{2}\\right|_0^2=2$。' }
+        ],
+        pitfall: '内层 $\\int_0^2 z\\mathrm{d}z=2$，别写成 $z^2=4$。'
+      };
+    }
+  });
+
+  /* TI3 困难：柱坐标 */
+  QB.register({
+    id: 'tripleint-TI3', type: 'tripleint', difficulty: 'hard',
+    gen: function (rng) {
+      for (var t = 0; t < 60; t++) {
+        var a = [1, 2][ri(0, 1, rng)];
+        var h = [2, 3][ri(0, 1, rng)];
+        var v = a * a * a * a * h / 2;            // 2π·(a⁴/4)·h = π a⁴ h / 2
+        var correct = v === 1 ? '\\pi'
+          : v === 1.5 ? '\\frac{3}{2}\\pi'
+          : v === 16 ? '16\\pi' : '24\\pi';
+        var d = bo(correct, ['2\\pi', '\\frac{\\pi}{2}', '4\\pi'], rng);
+        if (!ok4(d.options)) continue;
+        return {
+          params: { a: a, h: h },
+          question: '计算 $\\iiint_\\Omega (x^2+y^2)\\,\\mathrm{d}V$，其中 $\\Omega$ 是圆柱 $x^2+y^2\\le ' + (a * a) + '$，$0\\le z\\le ' + h + '$。',
+          options: d.options, answerIndex: d.answerIndex, answer: d.answer,
+          idea: '柱坐标：$x^2+y^2=r^2$，$\\mathrm{d}V=r\\,\\mathrm{d}r\\,\\mathrm{d}\\theta\\,\\mathrm{d}z$。',
+          steps: [
+            { m: '\\int_0^{2\\pi}\\mathrm{d}\\theta\\int_0^{' + a + '}r^2\\cdot r\\,\\mathrm{d}r\\int_0^{' + h + '}\\mathrm{d}z',
+              t: '代入柱坐标（别忘那个 $r$）。' },
+            { m: '= 2\\pi\\cdot\\frac{' + (a * a * a * a) + '}{4}\\cdot' + h + ' = ' + correct,
+              t: '三个积分相乘：$2\\pi$、$\\frac{r^4}{4}$、' + h + '。' }
+          ],
+          pitfall: '柱坐标的体积元是 $r\\,\\mathrm{d}r\\,\\mathrm{d}\\theta\\,\\mathrm{d}z$，少乘 $r$ 是最常见错误。'
+        };
+      }
+      throw new Error('TI3 retry fail');
+    }
+  });
+
   /* ================= 曲线积分与格林公式 ================= */
 
   /* L1 基础：弧长 */
