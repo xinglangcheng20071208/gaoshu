@@ -74,6 +74,7 @@
     vector:     { name: '向量与空间解析几何', short: '向量', icon: '→', color: '#f43f5e', semester: 2 },
     multivar:   { name: '多元函数微分学', short: '多元微分', icon: '∂', color: '#0d9488', semester: 2 },
     doubleint:  { name: '重积分',         short: '重积分',   icon: '∬',  color: '#7c3aed', semester: 2 },
+    tripleint:  { name: '三重积分',       short: '三重积分', icon: '∭',  color: '#0891b2', semester: 2 },
     lineint:    { name: '曲线积分与格林公式', short: '曲线积分', icon: '∮', color: '#c026d3', semester: 2 },
     series:     { name: '无穷级数',       short: '级数',     icon: '∑',  color: '#ea580c', semester: 2 },
     ode2:       { name: '二阶常系数微分方程', short: '二阶方程', icon: 'y″', color: '#b91c1c', semester: 2 }
