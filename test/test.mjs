@@ -19,6 +19,7 @@ require('../js/qb-more.js');
 require('../js/qb-more2.js');
 require('../js/qb-solve.js');
 require('../js/qb-sem2.js');
+require('../js/qb-gaokao.js');
 const S = require('../js/scheduler.js');
 
 /* ---------- 独立的小工具（与 core.js 分开实现） ---------- */
@@ -241,7 +242,67 @@ const V = {
   'solve-SV3': () => '$\\int_0^2\\mathrm{d}y\\int_0^1 x\\,\\mathrm{d}x=2\\cdot\\frac{1}{2}=1$。',
   'solve-SV4': () => '参数化 $x=t,\\ y=t$（$0\\le t\\le1$），$\\mathrm{d}s=\\sqrt2\\,\\mathrm{d}t$，故 $\\int_L x\\,\\mathrm{d}s=\\sqrt2\\int_0^1 t\\,\\mathrm{d}t=\\frac{\\sqrt2}{2}$。',
   'solve-SV5': () => '当 $n\\ge2$ 时 $\\frac{1}{n^2}\\le\\frac{1}{n(n-1)}=\\frac{1}{n-1}-\\frac{1}{n}$，而 $\\sum\\frac{1}{n(n-1)}$ 收敛（裂项），由比较判别法原级数收敛。',
-  'solve-SV6': () => '特征方程 $r^2-1=0$ 得 $r=\\pm1$，故 $y=C_1e^{x}+C_2e^{-x}$。'
+  'solve-SV6': () => '特征方程 $r^2-1=0$ 得 $r=\\pm1$，故 $y=C_1e^{x}+C_2e^{-x}$。',
+
+  /* ================= 北京高考 ================= */
+  'gk-G1': q => '[' + q.params.c + ',2)',
+  'gk-G2': q => {
+    const a = q.params.a, b = q.params.b;
+    const re = (a - b) / 2, im = (a + b) / 2;
+    const h = x => {
+      if (!x) return '0';
+      const neg = x < 0, ax = Math.abs(x);
+      const body = (Math.round(ax) === ax) ? String(ax) : '\\frac{' + (ax * 2) + '}{2}';
+      return (neg ? '-' : '') + body;
+    };
+    if (im === 0) return h(re);
+    if (re === 0) return (im > 0 ? '' : '-') + h(Math.abs(im)) + 'i';
+    return h(re) + (im > 0 ? '+' : '-') + h(Math.abs(im)) + 'i';
+  },
+  'gk-G3': q => '[' + q.params.a + ',' + q.params.b + ')',
+  'gk-G4': () => 'y=\\frac{1}{x}',
+  'gk-G5': q => {
+    const n = q.params.n, a = q.params.a;
+    const slope = n * Math.pow(a, n - 1), y0 = Math.pow(a, n);
+    return 'y=' + slope + 'x' + signed(y0 - slope * a);
+  },
+  'gk-G6': q => q.params.deg === 15 ? '\\frac{1}{2}' : q.params.deg === 30 ? '\\frac{\\sqrt{2}}{2}' : '\\frac{\\sqrt{3}}{2}',
+  'gk-G7': q => {
+    const a = q.params.a, b = q.params.b, C0 = q.params.C0;
+    const c2 = Math.round((a * a + b * b - 2 * a * b * Math.cos(C0 * Math.PI / 180)) * 100) / 100;
+    let out = 1, rest = c2;
+    for (let i = 2; i * i <= rest; i++) { while (rest % (i * i) === 0) { out *= i; rest /= (i * i); } }
+    return rest === 1 ? String(out) : (out === 1 ? '' : String(out)) + '\\sqrt{' + rest + '}';
+  },
+  'gk-G8': q => String(q.params.a1 + 9 * q.params.d),
+  'gk-G9': q => String(q.params.a1 * (Math.pow(q.params.q, 5) - 1) / (q.params.q - 1)),
+  'gk-G10': q => String(q.params.m),
+  'gk-G11': q => String(6 * q.params.n * q.params.n),
+  'gk-G12': q => frac(Math.sqrt(q.params.a2 - q.params.b2), Math.sqrt(q.params.a2)),
+  'gk-G13': q => frac(q.params.r * q.params.w, (q.params.r + q.params.w) * (q.params.r + q.params.w - 1) / 2),
+  'gk-G14': q => String(2 * q.params.k),
+  'gk-G15': () => '若 $a\\perp\\alpha$，$b\\perp\\alpha$，则 $a\\parallel b$',
+
+  /* ---- 高考填空 ---- */
+  'gk-F1': () => 'i',
+  'gk-F2': () => '(1,+∞)',
+  'gk-F3': q => String(10 * q.params.a1 + 45 * q.params.d),
+  'gk-F4': () => '20',
+  'gk-F5': () => '2',
+  'gk-F6': () => '1',
+  'gk-F7': () => '-4/5',
+  'gk-F8': () => '-2',
+  'gk-F9': () => '1',
+  'gk-F10': () => '15',
+
+  /* ---- 高考解答 ---- */
+  'gk-GS0': () => '由勾股定理 $c=\\sqrt{a^2+b^2}=\\sqrt{3^2+4^2}=5$。',
+  'gk-GS1': () => '由正弦定理 $\\frac{a}{\\sin A}=\\frac{b}{\\sin B}$ 得 $\\sin B=\\frac{b\\sin A}{a}=\\frac{1\\cdot\\frac{\\sqrt3}{2}}{\\sqrt3}=\\frac12$，又 $b<a$ 故 $B$ 为锐角，所以 $B=30^{\\circ}$。',
+  'gk-GS2': () => '(1) $a_1+2d=5$，$2a_1+5d=12$，解得 $a_1=1,\\ d=2$；(2) $S_{10}=10a_1+45d=10+90=100$。',
+  'gk-GS3': () => '$V=\\frac13\\cdot S_{\\triangle ABD}\\cdot AA_1=\\frac13\\cdot\\frac12\\cdot2\\cdot2\\cdot2=\\frac43$。',
+  'gk-GS4': () => '圆心到直线距离 $d=\\frac{1}{\\sqrt2}=\\frac{\\sqrt2}{2}$，弦长 $=2\\sqrt{r^2-d^2}=2\\sqrt{4-\\frac12}=\\sqrt{14}$。',
+  'gk-GS5': () => '恰有一人命中 = 甲中乙不中 + 甲不中乙中：$0.6\\times0.5+0.4\\times0.5=0.5$。',
+  'gk-GS6': () => '$f\\prime(x)=3x^2-6x=3x(x-2)$，驻点 $x=0,2$；比较端点与驻点：$f(0)=2$，$f(2)=-2$，$f(3)=2$，故最大值为 2。'
 };
 
 /* ---------- 测试 1：模板大规模生成 + 独立答案验证 ---------- */
@@ -270,12 +331,17 @@ for (const tpl of QB.templates) {
     catch (e) { fails.push(tpl.id + ' 生成抛异常: ' + e.message); break; }
     tplOk++;
     const isSolve = tpl.kind === 'solve';
+    const isFill = tpl.kind === 'fill';
     // 结构检查
     if (isSolve) {
       if (!q.answer || typeof q.answer !== 'string') { fails.push(tpl.id + ' 解答题缺少答案文本'); }
       if (q.options && q.options.length !== 0) { fails.push(tpl.id + ' 解答题不应有选项'); }
       if (q.kind !== undefined && q.kind !== 'solve') { fails.push(tpl.id + ' 解答题 kind 标记错误'); }
       if (!Array.isArray(q.steps) || q.steps.length < 2) { fails.push(tpl.id + ' 解答题解析步骤不足'); }
+    } else if (isFill) {
+      if (!q.answer || typeof q.answer !== 'string') { fails.push(tpl.id + ' 填空题缺少答案文本'); }
+      if (q.options && q.options.length !== 0) { fails.push(tpl.id + ' 填空题不应有选项'); }
+      if (!Array.isArray(q.steps) || q.steps.length < 1) { fails.push(tpl.id + ' 填空题解析步骤不足'); }
     } else {
       if (q.options.length !== 4) { fails.push(tpl.id + ' 选项数不为4'); }
       if (new Set(q.options).size !== 4) { fails.push(tpl.id + ' 选项重复: ' + JSON.stringify(q.options)); }
@@ -402,19 +468,36 @@ check(Object.keys(sel3.used).length === 10, '未选题型时应保持覆盖 10 �
 
 /* ---------- 测试 6.6：按题型形式组卷（选择题/解答题/证明题） ---------- */
 console.log('\n--- 题型形式 ---');
-const form1 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(47), forms: ['solution', 'proof'] });
+const GS_TYPES = QB.typesOfSemester(1).concat(QB.typesOfSemester(2));   // 高数章节（形式筛选只用于高数）
+const form1 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(47), typeIds: GS_TYPES, forms: ['solution', 'proof'] });
 check(form1.questions.every(q => q.form === 'solution' || q.form === 'proof'), '只选解答/证明题时不应出现选择题: ' + form1.questions.map(q => q.form).join(','));
-const form2 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(49), forms: ['choice'] });
+const form2 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(49), typeIds: GS_TYPES, forms: ['choice'] });
 check(form2.questions.every(q => q.form === 'choice'), '只选选择题时不应出现解答/证明题');
 const form3 = S.buildCustom({ typeIds: ['limit', 'mvt'], difficulty: 'medium', count: 6, rng: QB.mulberry32(51), forms: ['proof'] });
 check(form3.questions.every(q => q.form !== 'choice'), '专项只选证明题时不应出现选择题: ' + form3.questions.map(q => q.form).join(','));
 const form4 = S.buildCustom({ typeIds: ['defapp'], difficulty: 'mixed', count: 5, rng: QB.mulberry32(53), forms: ['solution'] });
 check(form4.questions.every(q => q.form === 'solution'), '专项只选解答题时应全部为解答题');
 // 只选"证明题"时，没有证明题模板的章节应回退为解答题（笔答题），绝不回退为选择题
-const form5 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(55), forms: ['proof'] });
+const form5 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(55), typeIds: GS_TYPES, forms: ['proof'] });
 check(form5.questions.every(q => q.form !== 'choice'), '只选证明题时不应出现选择题（可用解答题兜底）: ' + form5.questions.map(q => q.form).join(','));
 const form6 = S.buildCustom({ typeIds: ['indint'], difficulty: 'medium', count: 5, rng: QB.mulberry32(57), forms: ['proof'] });
 check(form6.questions.every(q => q.form !== 'choice'), '无证明题模板的章节应回退为解答题而非选择题: ' + form6.questions.map(q => q.form).join(','));
+
+/* ---------- 测试 6.8：北京高考板块 ---------- */
+console.log('\n--- 北京高考板块 ---');
+check(QB.typesOfTrack('gaokao').length === 3, '高考应有 3 种卷面题型，实际 ' + QB.typesOfTrack('gaokao').length);
+check(QB.typesOfTrack('gaoshu').length === 14, '高数应有 14 个章节，实际 ' + QB.typesOfTrack('gaoshu').length);
+const gkDaily = S.buildGaokaoDaily({ typesState: {}, today: D, difficulty: 'medium', rng: QB.mulberry32(71) });
+check(gkDaily.questions.length === 10, '高考每日应 10 题，实际 ' + gkDaily.questions.length);
+const gkKinds = gkDaily.questions.map(q => q.kind);
+check(gkKinds.filter(k => k === 'choice').length === 6, '高考每日应 6 道选择');
+check(gkKinds.filter(k => k === 'fill').length === 3, '高考每日应 3 道填空');
+check(gkKinds.filter(k => k === 'solve').length === 1, '高考每日应 1 道解答');
+check(gkDaily.questions.every(q => QB.types[q.typeId].track === 'gaokao'), '高考套题只能包含高考题型');
+const gkCustom = S.buildCustom({ typeIds: ['gkChoose', 'gkFill'], difficulty: 'mixed', count: 8, rng: QB.mulberry32(73) });
+// 注意：typeIds 里混入无效 id 时应被过滤（此处只验证有效题型过滤逻辑）
+const gkCustom2 = S.buildCustom({ typeIds: ['gkFill'], difficulty: 'mixed', count: 6, rng: QB.mulberry32(75) });
+check(gkCustom2.questions.length === 6 && gkCustom2.questions.every(q => q.typeId === 'gkFill'), '高考专项（填空）应全部为填空题');
 // 大一上 7 个章节都至少有一种解答/证明题（保证"只选解答题"时这些章节都有得练）
 for (const t of QB.typesOfSemester(1)) {
   const anySolve = QB.templates.some(tpl => tpl.type === t && (tpl.form === 'solution' || tpl.form === 'proof'));
