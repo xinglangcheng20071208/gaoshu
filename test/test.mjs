@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
  * 高数刷题营 - Node 自测脚本
  * 1) 对全部模板大规模生成题目，用独立公式重算答案（验证正确率）
  * 2) 验证 4 个选项互不相同、正确答案在选项中
@@ -230,6 +230,11 @@ const V = {
   'ode2-O24': () => '(C_1+C_2x)e^{-x}',
   'ode2-O25': () => 'y^*=x',
 
+  /* ---- 大一下：三重积分 ---- */
+  'tripleint-TI1': q => String(q.params.c * q.params.a * q.params.b * q.params.d0),
+  'tripleint-TI2': () => '2',
+  'tripleint-TI3': q => (q.params.a === 1 ? (q.params.h === 2 ? '\\pi' : '\\frac{3}{2}\\pi') : (q.params.h === 2 ? '16\\pi' : '24\\pi')),
+
   /* ---- 大一下：解答/证明题（无选项） ---- */
   'solve-SV1': () => '设 $\\vec{a}=(a_1,a_2,a_3)$，则 $\\vec{a}\\cdot\\vec{a}=a_1^2+a_2^2+a_3^2=|\\vec{a}|^{2}$，证毕。',
   'solve-SV2': () => '$\\mathrm{d}z=2xy\\,\\mathrm{d}x+x^2\\,\\mathrm{d}y$，在 $(1,2)$ 处 $\\mathrm{d}z=4\\,\\mathrm{d}x+\\mathrm{d}y$。',
@@ -429,10 +434,10 @@ check(c4.questions.every(q => q.typeId === 'defapp'), '单选题型专项应全�
 /* ---------- 测试 6.7：学期选择 ---------- */
 console.log('\n--- 学期选择 ---');
 check(QB.typesOfSemester(1).length === 7, '大一上应有 7 个章节，实际 ' + QB.typesOfSemester(1).length);
-check(QB.typesOfSemester(2).length === 6, '大一下应有 6 个章节，实际 ' + QB.typesOfSemester(2).length);
+check(QB.typesOfSemester(2).length === 7, '大一下应有 7 个章节，实际 ' + QB.typesOfSemester(2).length);
 const sem2 = S.buildDaily({ typesState: {}, today: D, difficulty: 'medium', count: 10, rng: QB.mulberry32(61), typeIds: QB.typesOfSemester(2) });
 check(sem2.questions.every(q => QB.typesOfSemester(2).indexOf(q.typeId) >= 0), '按大一下组卷应只包含大一下章节: ' + sem2.questions.map(q => q.typeId).join(','));
-check(Object.keys(sem2.used).length === 6, '大一下 10 题应覆盖 6 个章节，实际 ' + Object.keys(sem2.used).length);
+check(Object.keys(sem2.used).length === 7, '大一下 10 题应覆盖 7 个章节，实际 ' + Object.keys(sem2.used).length);
 const sem2c = S.buildCustom({ typeIds: QB.typesOfSemester(2), difficulty: 'mixed', count: 12, rng: QB.mulberry32(63) });
 check(sem2c.questions.every(q => QB.typesOfSemester(2).indexOf(q.typeId) >= 0), '专项（大一下）组卷应只包含大一下章节');
 // 大一下每章都覆盖三个难度
