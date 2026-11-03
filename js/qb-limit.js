@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 题库：极限与连续（13 个模板，答案全部由参数程序化生成）
  * 每道题：question(题目) / options(4选1) / answer(正确答案)
  *        / idea(思路) / steps(分步过程，含大白话解释) / pitfall(易错点)
@@ -23,7 +23,7 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a, b: b },
-          question: '\\lim_{x\\to ' + a + '}\\frac{x^2' + signed(p) + 'x' + signed(q) + '}{x' + signed(-a) + '}',
+          question: '\\lim\\limits_{x\\to ' + a + '}\\frac{x^2' + signed(p) + 'x' + signed(q) + '}{x' + signed(-a) + '}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '看到 $\\frac{0}{0}$ 型别慌：先把分子因式分解，分子分母同时约掉相同的因式，再代入就出结果。',
           steps: [
@@ -52,11 +52,11 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a, b: b, c: c, d: d0 },
-          question: '\\lim_{x\\to ' + c + '}\\left(' + (a === 1 ? '' : a) + 'x^2' + signed(b) + 'x' + signed(d0) + '\\right)',
+          question: '\\lim\\limits_{x\\to ' + c + '}\\left(' + (a === 1 ? '' : a) + 'x^2' + signed(b) + 'x' + signed(d0) + '\\right)',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '多项式在定义域内处处连续，求极限最简单：直接把 $x$ 的值代进去。',
           steps: [
-            { m: '\\lim_{x\\to ' + c + '}\\left(' + (a === 1 ? '' : a) + 'x^2' + signed(b) + 'x' + signed(d0) + '\\right) = ' + a + '\\cdot ' + c + '^2' + signed(b * c) + signed(d0),
+            { m: '\\lim\\limits_{x\\to ' + c + '}\\left(' + (a === 1 ? '' : a) + 'x^2' + signed(b) + 'x' + signed(d0) + '\\right) = ' + a + '\\cdot ' + c + '^2' + signed(b * c) + signed(d0),
               t: '把 $x=' + c + '$ 逐项代入：$' + (a === 1 ? '' : a) + '\\times ' + c + '^2$，再加上 $' + b + '\\times ' + c + '$ 和常数 ' + d0 + '。' },
             { m: '= ' + (a * c * c) + signed(b * c) + signed(d0) + ' = ' + correct,
               t: '按先乘方、再乘除、最后加减的顺序算出来。' }
@@ -79,13 +79,13 @@
         if (!ok4(d.options)) continue;
         return {
           params: { k: k },
-          question: '\\lim_{x\\to 0}\\frac{\\sin(' + k + 'x)}{x}',
+          question: '\\lim\\limits_{x\\to 0}\\frac{\\sin(' + k + 'x)}{x}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '第一重要极限：$\\lim\\frac{\\sin\\Box}{\\Box}=1$（方框里是同一个趋近 0 的量）。分母缺什么就补什么。',
           steps: [
             { m: '\\frac{\\sin(' + k + 'x)}{x} = \\frac{\\sin(' + k + 'x)}{' + k + 'x}\\cdot ' + k,
               t: '让分母和 $\\sin$ 里面的东西一样：分母乘 ' + k + '，同时整体再乘 ' + k + ' 补回来。' },
-            { m: '\\lim_{x\\to 0}\\frac{\\sin(' + k + 'x)}{' + k + 'x} = 1',
+            { m: '\\lim\\limits_{x\\to 0}\\frac{\\sin(' + k + 'x)}{' + k + 'x} = 1',
               t: '当 $x\\to 0$ 时，$' + k + 'x$ 也趋近 0，所以这一坨就是重要极限，等于 1。' },
             { m: '= 1 \\times ' + k + ' = ' + k,
               t: '外面还乘着一个 ' + k + '，所以答案是 ' + k + '。' }
@@ -108,7 +108,7 @@
         if (!ok4(d.options)) continue;
         return {
           params: { k: k },
-          question: '\\lim_{x\\to 0}\\frac{1-\\cos(' + k + 'x)}{x^2}',
+          question: '\\lim\\limits_{x\\to 0}\\frac{1-\\cos(' + k + 'x)}{x^2}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '分子是 $1-\\cos$，想到半角公式把它变成 $\\sin^2$，就能用重要极限了。',
           steps: [
@@ -137,13 +137,13 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a },
-          question: '\\lim_{x\\to\\infty}\\left(1+\\frac{1}{x}\\right)^{' + a + 'x}',
+          question: '\\lim\\limits_{x\\to\\infty}\\left(1+\\frac{1}{x}\\right)^{' + a + 'x}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
-          idea: '第二重要极限：$\\lim_{x\\to\\infty}(1+\\frac{1}{x})^x = e$。指数上多一个 ' + a + '，结果就是 $e$ 的 ' + a + ' 次方。',
+          idea: '第二重要极限：$\\lim\\limits_{x\\to\\infty}(1+\\frac{1}{x})^x = e$。指数上多一个 ' + a + '，结果就是 $e$ 的 ' + a + ' 次方。',
           steps: [
             { m: '\\left(1+\\frac{1}{x}\\right)^{' + a + 'x} = \\left[\\left(1+\\frac{1}{x}\\right)^{x}\\right]^{' + a + '}',
               t: '指数上的 $' + a + 'x$ 拆成 $x\\times' + a + '$，用幂的运算法则 $(\\Box^{x})^{' + a + '}$ 提出去。' },
-            { m: '\\lim_{x\\to\\infty}\\left(1+\\frac{1}{x}\\right)^{x} = e',
+            { m: '\\lim\\limits_{x\\to\\infty}\\left(1+\\frac{1}{x}\\right)^{x} = e',
               t: '中括号里面就是第二重要极限，等于 $e$。' },
             { m: '\\Rightarrow e^{' + a + '}',
               t: '所以整体等于 $e^{' + a + '}$，答案就是 $e^{' + a + '}$。' }
@@ -167,7 +167,7 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a },
-          question: '\\lim_{x\\to 0}\\frac{\\sqrt{' + a + '+x}-\\sqrt{' + a + '}}{x}',
+          question: '\\lim\\limits_{x\\to 0}\\frac{\\sqrt{' + a + '+x}-\\sqrt{' + a + '}}{x}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '分子是两个根号相减（$\\frac{0}{0}$ 型），用"分子有理化"：分子分母同乘共轭式 $\\sqrt{' + a + '+x}+\\sqrt{' + a + '}$。',
           steps: [
@@ -193,7 +193,7 @@
       var d = bo(correct, ['0', '1', '\\frac{1}{3}'], rng);
       return {
         params: {},
-        question: '\\lim_{x\\to 0}\\frac{\\tan x-\\sin x}{x^3}',
+        question: '\\lim\\limits_{x\\to 0}\\frac{\\tan x-\\sin x}{x^3}',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '见到 $\\tan x$ 先化成 $\\frac{\\sin x}{\\cos x}$，把 $\\sin x$ 提出来，剩下 $1-\\cos x$，就能用两个重要极限了。',
         steps: [
@@ -217,13 +217,13 @@
       var d = bo(correct, ['0', '1', '2'], rng);
       return {
         params: {},
-        question: '\\lim_{x\\to 0}\\frac{e^{x}-1-x}{x^2}',
+        question: '\\lim\\limits_{x\\to 0}\\frac{e^{x}-1-x}{x^2}',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '$\\frac{0}{0}$ 型，用洛必达法则：分子分母分别求导。用完一次要检查是不是还是 $\\frac{0}{0}$，是就再来一次。',
         steps: [
-          { m: '\\xrightarrow{\\text{洛必达}} \\lim_{x\\to 0}\\frac{e^{x}-1}{2x}',
+          { m: '\\xrightarrow{\\text{洛必达}} \\lim\\limits_{x\\to 0}\\frac{e^{x}-1}{2x}',
             t: '第一次求导：分子 $(e^x-1-x)\\prime=e^x-1$，分母 $(x^2)\\prime=2x$。代入还是 $\\frac{0}{0}$，继续。' },
-          { m: '\\xrightarrow{\\text{再洛必达}} \\lim_{x\\to 0}\\frac{e^{x}}{2}',
+          { m: '\\xrightarrow{\\text{再洛必达}} \\lim\\limits_{x\\to 0}\\frac{e^{x}}{2}',
             t: '第二次求导：分子变成 $e^x$，分母变成 2。这次可以代入了。' },
           { m: '= \\frac{1}{2}',
             t: '$x\\to 0$ 时 $e^0=1$，所以结果是 $\\frac{1}{2}$。' }
@@ -264,7 +264,7 @@
       var d = bo(correct, ['1', '不存在', '\\frac{1}{2}'], rng);
       return {
         params: {},
-        question: '\\lim_{x\\to 0} x\\sin\\frac{1}{x}',
+        question: '\\lim\\limits_{x\\to 0} x\\sin\\frac{1}{x}',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '无穷小量乘以有界量，结果还是无穷小。$x$ 是无穷小，$\\sin\\frac{1}{x}$ 是有界量。',
         steps: [
@@ -292,7 +292,7 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a, d: dd, b: b, e: e, c: c0 },
-          question: '\\lim_{x\\to\\infty}\\frac{' + (a === 1 ? '' : a) + 'x^2' + signed(b) + 'x' + signed(c0) + '}{' + (dd === 1 ? '' : dd) + 'x^2' + signed(e) + '}',
+          question: '\\lim\\limits_{x\\to\\infty}\\frac{' + (a === 1 ? '' : a) + 'x^2' + signed(b) + 'x' + signed(c0) + '}{' + (dd === 1 ? '' : dd) + 'x^2' + signed(e) + '}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '$x\\to\\infty$ 的多项式之比，分子分母同时除以最高次项 $x^2$，其余项都趋于 0，只剩最高次系数之比。',
           steps: [
@@ -321,7 +321,7 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a },
-          question: '\\lim_{x\\to 0}\\frac{' + a + '^{x}-1}{x}',
+          question: '\\lim\\limits_{x\\to 0}\\frac{' + a + '^{x}-1}{x}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '把 ' + a + ' 的 x 次方化成 $e$ 的幂：$' + a + '^x = e^{x\\ln ' + a + '}$，再用重要极限 $\\frac{e^{\\Box}-1}{\\Box}\\to 1$。',
           steps: [
@@ -351,11 +351,11 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a, b: b },
-          question: '\\lim_{x\\to 0}\\frac{\\sin(' + a + 'x)-\\sin(' + b + 'x)}{x}',
+          question: '\\lim\\limits_{x\\to 0}\\frac{\\sin(' + a + 'x)-\\sin(' + b + 'x)}{x}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '分子是两个正弦相减，直接用极限四则运算法则拆成两个极限，每个都是重要极限的变形。',
           steps: [
-            { m: '= \\lim_{x\\to 0}\\frac{\\sin(' + a + 'x)}{x} - \\lim_{x\\to 0}\\frac{\\sin(' + b + 'x)}{x}',
+            { m: '= \\lim\\limits_{x\\to 0}\\frac{\\sin(' + a + 'x)}{x} - \\lim\\limits_{x\\to 0}\\frac{\\sin(' + b + 'x)}{x}',
               t: '先拆成两个极限（两个极限都存在，所以可以拆）。' },
             { m: '\\frac{\\sin(' + a + 'x)}{x} = ' + a + '\\cdot\\frac{\\sin(' + a + 'x)}{' + a + 'x} \\to ' + a,
               t: '第一个：凑重要极限，结果是 ' + a + '。' },
