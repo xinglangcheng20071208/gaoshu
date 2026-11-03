@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 高数刷题营 - 主应用（UI 与交互）
  * ============================================================ */
 (function () {
@@ -105,13 +105,20 @@
     return f.length ? f : ['choice', 'solution', 'proof'];
   }
 
+  function effDailyTypes() {
+    var sel = (state.settings.dailyTypes || []).filter(function (t) { return QB.types[t]; });
+    return sel.length ? sel : QB.typesOfSemester(state.settings.semester);
+  }
+
   function ensureDaily() {
     var d = state.daily[today];
-    var sel = (state.settings.dailyTypes || []).slice().sort().join(',');
+    var effTypes = effDailyTypes();
+    var sel = effTypes.slice().sort().join(',');
     var curSel = d && d.typeIds ? d.typeIds : '';
     var formsSel = effForms(state.settings.dailyForms).slice().sort().join(',');
     var curForms = d && d.forms ? d.forms : '';
-    if (!d || d.difficulty !== state.settings.difficulty || curSel !== sel || curForms !== formsSel) {
+    var sem = state.settings.semester;
+    if (!d || d.difficulty !== state.settings.difficulty || curSel !== sel || curForms !== formsSel || d.semester !== sem) {
       // 举一反三：避开每个题型上一次做过的原题（同模板同参数）
       var avoidMap = {};
       Object.keys(state.types).forEach(function (t) {
@@ -120,12 +127,13 @@
       d = S.buildDaily({
         typesState: state.types, today: today,
         difficulty: state.settings.difficulty, count: 10, avoidMap: avoidMap,
-        typeIds: state.settings.dailyTypes || [],
+        typeIds: effTypes,
         forms: effForms(state.settings.dailyForms)
       });
       d.difficulty = state.settings.difficulty; // 关键：给套装盖章难度，避免每次误判重建
       d.typeIds = sel;                          // 记录组卷所用题型，用于判断是否需要重建
       d.forms = formsSel;                       // 记录组卷所用形式
+      d.semester = sem;                         // 记录组卷所用学期
       d.answers = {};
       state.daily[today] = d;
       Object.keys(d.used).forEach(function (t) {
@@ -309,10 +317,17 @@
     }).join('');
 
     var sel = state.settings.dailyTypes || [];
-    var typeChips = Object.keys(QB.types).map(function (t) {
+    var semTypes = QB.typesOfSemester(state.settings.semester);
+    var typeChips = semTypes.map(function (t) {
       var m = QB.types[t];
       var on = sel.indexOf(t) >= 0;
       return '<button class="seg' + (on ? ' active' : '') + '" data-dtype="' + t + '" style="--tc:' + m.color + '" title="' + esc(m.name) + '">' + esc(m.short) + '</button>';
+    }).join('');
+
+    var semChips = ['1', '2'].map(function (s) {
+      var m = QB.semesters[s];
+      var on = String(state.settings.semester) === s;
+      return '<button class="seg' + (on ? ' active' : '') + '" data-sem="' + s + '" style="--tc:#6366f1" title="' + esc(m.desc) + '">' + esc(m.name) + '</button>';
     }).join('');
 
     var forms = effForms(state.settings.dailyForms);
@@ -326,6 +341,7 @@
     html += '<div class="daily-meta card">';
     html += '<div class="dm-row1"><span class="dm-date">📅 ' + today + '</span><div class="dm-diff">难度：<span class="segs">' + diffs + '</span></div></div>';
     html += '<div class="dm-row2"><span class="dm-prog">今日进度 <b>' + answered + '</b>/' + d.questions.length + '</span><div class="pbar"><div class="pbar-in" style="width:' + Math.round(answered / d.questions.length * 100) + '%"></div></div></div>';
+    html += '<div class="dm-row3"><span class="dm-plan">学期</span><div class="dm-chips">' + semChips + '</div></div>';
     html += '<div class="dm-row3"><span class="dm-plan">自选题型</span><div class="dm-chips">' + typeChips +
       '<button class="seg' + (sel.length === 0 ? ' active' : '') + '" data-dtype="" style="--tc:var(--muted)">全部</button></div></div>';
     html += '<div class="dm-row3"><span class="dm-plan">题型形式</span><div class="dm-chips">' + formChips + '</div></div>';
@@ -534,14 +550,21 @@
 
   function renderCustomConfig() {
     var s = state.custom.settings;
+    var semTypes = QB.typesOfSemester(state.settings.semester);
 
-    var typesHtml = Object.keys(QB.types).map(function (t) {
+    var typesHtml = semTypes.map(function (t) {
       var m = QB.types[t];
       var on = s.typeIds.indexOf(t) >= 0;
       return '<button class="ctype' + (on ? ' on' : '') + '" data-ctype="' + t + '" style="--tc:' + m.color + '">' +
         '<span class="ct-icon">' + esc(m.icon) + '</span>' +
         '<span class="ct-name">' + esc(m.name) + '</span>' +
         '<span class="ct-check">' + (on ? '✓' : '') + '</span></button>';
+    }).join('');
+
+    var csemChips = ['1', '2'].map(function (sv) {
+      var m = QB.semesters[sv];
+      var on = String(state.settings.semester) === sv;
+      return '<button class="seg' + (on ? ' active' : '') + '" data-csem="' + sv + '" style="--tc:#6366f1" title="' + esc(m.desc) + '">' + esc(m.name) + '</button>';
     }).join('');
 
     var diffsHtml = Object.keys(CUSTOM_DIFFS).map(function (dd) {
@@ -562,16 +585,17 @@
 
     var html = '<div class="cfg card">';
     html += '<div class="cfg-title">🎯 专项练习</div>';
-    html += '<div class="cfg-desc">勾选想练的章节（可多选）、题型形式（选择题/解答题/证明题），选好难度和题量后开始。专项练习独立于每日 10 题，标记的掌握状态同样影响复习计划与错题本。</div>';
+    html += '<div class="cfg-desc">先选<b>学期</b>，再勾选想练的章节（可多选）、题型形式（选择题/解答题/证明题），选好难度和题量后开始。专项练习独立于每日 10 题，标记的掌握状态同样影响复习计划与错题本。</div>';
 
-    html += '<div class="cfg-block"><div class="cfg-label">📖 选择题型（已选 ' + s.typeIds.length + '/7）</div>';
+    html += '<div class="cfg-block"><div class="cfg-label">🎓 学期</div><div class="segs">' + csemChips + '</div></div>';
+    html += '<div class="cfg-block"><div class="cfg-label">📖 选择题型（已选 ' + s.typeIds.length + '/' + semTypes.length + '）</div>';
     html += '<div class="ctype-grid">' + typesHtml + '</div></div>';
 
     html += '<div class="cfg-block"><div class="cfg-label">🧩 题型形式（可多选）</div><div class="segs">' + cformChips + '</div></div>';
     html += '<div class="cfg-block"><div class="cfg-label">🎚️ 题目难度</div><div class="segs">' + diffsHtml + '</div></div>';
     html += '<div class="cfg-block"><div class="cfg-label">🔢 题量</div><div class="segs">' + countsHtml + '</div></div>';
 
-    html += '<button class="btn cfg-start" data-cstart ' + (s.typeIds.length ? '' : 'disabled') + '>开始练习（' + s.count + ' 题）</button>';
+    html += '<button class="btn cfg-start" data-cstart>开始练习（' + s.count + ' 题，' + (s.typeIds.length ? '已选章节' : '本学期全部章节') + '）</button>';
     html += '</div>';
     $('#app').innerHTML = html;
   }
@@ -699,9 +723,9 @@
       html += '<div class="stats-note card">📝 其中解答/证明题 <b>' + solveCount + '</b> 道（按「已完成」记录，不计入选择题正确率）</div>';
     }
 
-    // 各题型统计
-    html += '<div class="type-stats card"><div class="ts-title">各章节掌握情况</div>';
-    Object.keys(QB.types).forEach(function (t) {
+    // 各题型统计（按当前学期）
+    html += '<div class="type-stats card"><div class="ts-title">各章节掌握情况（' + esc(QB.semesters[state.settings.semester].name) + '）</div>';
+    QB.typesOfSemester(state.settings.semester).forEach(function (t) {
       var m = QB.types[t];
       var hs = state.history.filter(function (h) { return h.typeId === t; });
       var gr = hs.filter(function (h) { return h.correct !== null && h.correct !== undefined; });
@@ -748,14 +772,15 @@
 
   /* ---------- 掌握度 ---------- */
   function renderMastery() {
-    var html = '<div class="mas-head card"><div class="ts-title">🧭 掌握度总览</div>' +
+    var semName = QB.semesters[state.settings.semester].name;
+    var html = '<div class="mas-head card"><div class="ts-title">🧭 掌握度总览（' + esc(semName) + '）</div>' +
       '<div class="mas-rules"><b>复习节奏：</b>' +
       '<span class="tag mark-mastered">已掌握 → 7 天后出类似题</span>' +
       '<span class="tag mark-wobbly">不熟练 → 2 天后出类似题</span>' +
       '<span class="tag mark-not">未掌握 → 连续 2 天出类似题</span>' +
       '</div></div>';
 
-    html += '<div class="mas-grid">' + Object.keys(QB.types).map(function (t) {
+    html += '<div class="mas-grid">' + QB.typesOfSemester(state.settings.semester).map(function (t) {
       var m = QB.types[t];
       var hs = state.history.filter(function (h) { return h.typeId === t; });
       var gr = hs.filter(function (h) { return h.correct !== null && h.correct !== undefined; });
@@ -810,6 +835,26 @@
         return;
       }
 
+      // 今日练习：切换学期
+      var semBtn = t.closest('[data-sem]');
+      if (semBtn) {
+        var sv = parseInt(semBtn.getAttribute('data-sem'), 10);
+        if (sv === state.settings.semester) return;
+        var dsS = state.daily[today];
+        var answeredS = dsS && dsS.answers ? Object.keys(dsS.answers).filter(function (k) {
+          return dsS.answers[k].submitted === true;
+        }).length : 0;
+        if (answeredS > 0 && !window.confirm('切换学期会重新生成今天的题（已完成 ' + answeredS + ' 题会清空进度）。确定吗？')) {
+          return;
+        }
+        state.settings.semester = sv;
+        state.settings.dailyTypes = [];   // 学期切换后题型选择重置为该学期全部
+        save();
+        curIdx = 0;
+        renderDaily();
+        return;
+      }
+
       // 今日练习：自选题型（混搭）
       var dty = t.closest('[data-dtype]');
       if (dty) {
@@ -856,6 +901,18 @@
         return;
       }
 
+      // 专项练习：切换学期
+      var csem = t.closest('[data-csem]');
+      if (csem) {
+        var csv = parseInt(csem.getAttribute('data-csem'), 10);
+        if (csv === state.settings.semester) return;
+        state.settings.semester = csv;
+        state.custom.settings.typeIds = [];   // 换学期后清空章节选择（避免残留旧章节）
+        state.custom.set = null;
+        save();
+        renderCustom();
+        return;
+      }
       // 专项练习：勾选题型
       var cty = t.closest('[data-ctype]');
       if (cty) {
@@ -897,26 +954,25 @@
       }
       // 专项练习：开始
       var cst = t.closest('[data-cstart]');
-      if (cst && !cst.disabled) {
+      if (cst) {
         var cs2 = state.custom.settings;
-        if (cs2.typeIds.length) {
-          var avoidMap2 = {};
-          cs2.typeIds.forEach(function (tt) {
-            if (state.types[tt] && state.types[tt].lastSig) avoidMap2[tt] = [state.types[tt].lastSig];
-          });
-          var built = S.buildCustom({
-            typeIds: cs2.typeIds, difficulty: cs2.difficulty, count: cs2.count,
-            forms: effForms(cs2.forms), avoidMap: avoidMap2
-          });
-          state.custom.set = { date: today, questions: built.questions, answers: {} };
-          Object.keys(built.lastSigs).forEach(function (tt) {
-            state.types[tt] = state.types[tt] || {};
-            state.types[tt].lastSig = built.lastSigs[tt];
-          });
-          customIdx = 0;
-          save();
-          renderCustom();
-        }
+        var effTypes2 = cs2.typeIds.length ? cs2.typeIds : QB.typesOfSemester(state.settings.semester);
+        var avoidMap2 = {};
+        effTypes2.forEach(function (tt) {
+          if (state.types[tt] && state.types[tt].lastSig) avoidMap2[tt] = [state.types[tt].lastSig];
+        });
+        var built = S.buildCustom({
+          typeIds: effTypes2, difficulty: cs2.difficulty, count: cs2.count,
+          forms: effForms(cs2.forms), avoidMap: avoidMap2
+        });
+        state.custom.set = { date: today, questions: built.questions, answers: {} };
+        Object.keys(built.lastSigs).forEach(function (tt) {
+          state.types[tt] = state.types[tt] || {};
+          state.types[tt].lastSig = built.lastSigs[tt];
+        });
+        customIdx = 0;
+        save();
+        renderCustom();
         return;
       }
       // 专项练习：重新选题
@@ -1126,7 +1182,8 @@
     setDailyQuestions: function (qs) {
       state.daily[today] = {
         date: today, difficulty: state.settings.difficulty,
-        typeIds: (state.settings.dailyTypes || []).slice().sort().join(','),
+        typeIds: effDailyTypes().slice().sort().join(','),
+        semester: state.settings.semester,
         forms: effForms(state.settings.dailyForms).slice().sort().join(','),
         questions: qs, answers: {}, due: [], used: {}
       };
