@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 题库扩充：22 个新模板（举一反三变式，答案程序化生成）
  * ============================================================ */
 (function (root) {
@@ -22,13 +22,13 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a, b: b },
-          question: '\\lim_{x\\to 0}\\frac{\\sin(' + a + 'x)}{' + b + 'x}',
+          question: '\\lim\\limits_{x\\to 0}\\frac{\\sin(' + a + 'x)}{' + b + 'x}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '重要极限变式：把分子分母凑成 $\\frac{\\sin\\Box}{\\Box}$ 的形式，多出来的系数照写。',
           steps: [
             { m: '\\frac{\\sin(' + a + 'x)}{' + b + 'x} = \\frac{' + a + '}{' + b + '}\\cdot\\frac{\\sin(' + a + 'x)}{' + a + 'x}',
               t: '分子凑成 $\\sin(' + a + 'x)$ 除以 $' + a + 'x$（两者一样才是重要极限），外面补上系数 $\\frac{' + a + '}{' + b + '}$。' },
-            { m: '\\lim_{x\\to 0}\\frac{\\sin(' + a + 'x)}{' + a + 'x} = 1',
+            { m: '\\lim\\limits_{x\\to 0}\\frac{\\sin(' + a + 'x)}{' + a + 'x} = 1',
               t: '$x\\to 0$ 时 $' + a + 'x$ 也趋近 0，这一坨就是重要极限，等于 1。' },
             { m: '= \\frac{' + a + '}{' + b + '}',
               t: '所以答案是 $\\frac{' + a + '}{' + b + '}$。' }
@@ -52,7 +52,7 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a, b: b },
-          question: '\\lim_{x\\to 0}\\frac{1-\\cos(' + a + 'x)}{' + b + 'x}',
+          question: '\\lim\\limits_{x\\to 0}\\frac{1-\\cos(' + a + 'x)}{' + b + 'x}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '判断"快慢"：$1-\\cos(' + a + 'x)$ 是 $x$ 的**二阶**无穷小，分母只有一阶，分母"跑得慢"，分式还是无穷小。',
           steps: [
@@ -82,7 +82,7 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a, b: b },
-          question: '\\lim_{x\\to 0}\\frac{e^{' + a + 'x}-1}{' + b + 'x}',
+          question: '\\lim\\limits_{x\\to 0}\\frac{e^{' + a + 'x}-1}{' + b + 'x}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '等价无穷小：$e^{\\Box}-1\\sim\\Box$（$\\Box\\to 0$）。分子等价于 $' + a + 'x$。',
           steps: [
@@ -109,7 +109,7 @@
       var d = bo(correct, ['e^{' + k + '}', 'e^{' + (2 * k + 1) + '}', (2 * k) + 'e'], rng);
       return {
         params: { k: k },
-        question: '\\lim_{x\\to\\infty}\\left(\\frac{x+' + k + '}{x-' + k + '}\\right)^{x}',
+        question: '\\lim\\limits_{x\\to\\infty}\\left(\\frac{x+' + k + '}{x-' + k + '}\\right)^{x}',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '幂指型化成 $1+$ 无穷小的形式，分别凑两个第二重要极限，分子分母各贡献一个 $e$。',
         steps: [
@@ -136,7 +136,7 @@
       var d = bo(correct, ['e^{' + k + 'x}(' + k + '\\sin x-\\cos x)', 'e^{' + k + 'x}\\cos x', k + 'e^{' + k + 'x}\\sin x'], rng);
       return {
         params: { k: k },
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}\\left(e^{' + k + 'x}\\sin x\\right)$',
+        question: '设 $y=e^{' + k + 'x}\\sin x$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '乘法法则：$(uv)\\prime=u\\prime v+uv\\prime$，其中 $e^{' + k + 'x}$ 的导数是 $' + k + 'e^{' + k + 'x}$。',
         steps: [
@@ -161,7 +161,7 @@
       var d = bo(correct, ['\\frac{1}{1+' + (k * k) + 'x^2}', '\\frac{' + k + '}{1+' + k + 'x^2}', '\\frac{' + k + '}{1+' + (k * k) + 'x^4}'], rng);
       return {
         params: { k: k },
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}\\arctan(' + k + 'x)$',
+        question: '设 $y=\\arctan(' + k + 'x)$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '基本公式：$(\\arctan x)\\prime=\\frac{1}{1+x^2}$，再套链式法则乘内层导数。',
         steps: [
