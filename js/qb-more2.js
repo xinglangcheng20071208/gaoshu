@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 题库扩充 ②：由网上经典例题拆分/归类而来（25 个新模板）
  * 每题带「技法标签」tech（有原题标签则沿用，无标签则按考点归类）
  * 答案全部由参数程序化生成
@@ -24,7 +24,7 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a, b: b },
-          question: '\\lim_{x\\to 0}\\frac{\\tan(' + a + 'x)}{\\sin(' + b + 'x)}',
+          question: '\\lim\\limits_{x\\to 0}\\frac{\\tan(' + a + 'x)}{\\sin(' + b + 'x)}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '等价无穷小代换：$x\\to 0$ 时 $\\tan\\Box\\sim\\Box$、$\\sin\\Box\\sim\\Box$，直接替换后约分。',
           steps: [
@@ -53,7 +53,7 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a },
-          question: '\\lim_{x\\to 1}\\frac{x^{' + a + '}-1}{x-1}',
+          question: '\\lim\\limits_{x\\to 1}\\frac{x^{' + a + '}-1}{x-1}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '分子在 $x=1$ 处为 0，说明它含因子 $x-1$：用公式 $x^n-1=(x-1)(x^{n-1}+x^{n-2}+\\cdots+1)$ 拆开约分。',
           steps: [
@@ -83,7 +83,7 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a },
-          question: '\\lim_{x\\to\\infty}\\left(\\sqrt{x^2+' + a + 'x}-x\\right)',
+          question: '\\lim\\limits_{x\\to\\infty}\\left(\\sqrt{x^2+' + a + 'x}-x\\right)',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '$\\infty-\\infty$ 型：分子有理化，把根号差变成"除以根号和"，再分子分母同除以 $x$。',
           steps: [
@@ -109,7 +109,7 @@
       var d = bo(correct, ['1', '-1', '0'], rng);
       return {
         params: {},
-        question: '\\lim_{x\\to 0}\\frac{x|x|}{x^2}',
+        question: '\\lim\\limits_{x\\to 0}\\frac{x|x|}{x^2}',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '含绝对值的极限先看左右极限：$x>0$ 时 $|x|=x$，$x<0$ 时 $|x|=-x$，两侧结果不同就是"极限不存在"。',
         steps: [
@@ -133,7 +133,7 @@
       var d = bo(correct, ['0', '\\frac{1}{6}', '1'], rng);
       return {
         params: {},
-        question: '\\lim_{x\\to 0}\\frac{\\sin x-x}{x^3}',
+        question: '\\lim\\limits_{x\\to 0}\\frac{\\sin x-x}{x^3}',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '$\\frac{0}{0}$ 型。要么用洛必达连导三次，要么用泰勒展开 $\\sin x = x-\\frac{x^3}{6}+\\cdots$ 一眼看出答案。',
         steps: [
@@ -160,7 +160,7 @@
       var d = bo(correct, [k + 'x^{' + (k - 1) + '}\\ln x', 'x^{' + (k - 1) + '}\\ln x', k + 'x^{' + (k - 1) + '}'], rng);
       return {
         params: { k: k },
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}\\left(x^{' + k + '}\\ln x\\right)$',
+        question: '设 $y=x^{' + k + '}\\ln x$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '乘积求导：$(uv)\\prime = u\\prime v+uv\\prime$，注意 $(\\ln x)\\prime=\\frac{1}{x}$。',
         steps: [
@@ -237,7 +237,7 @@
       var d = bo(correct, ['\\cos 2x', '2\\cos 2x', '\\sin^2 x'], rng);
       return {
         params: {},
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}\\sin^2 x$',
+        question: '设 $y=\\sin^2 x$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '$\\sin^2 x=(\\sin x)^2$ 是复合函数：外层平方求导得 $2\\sin x$，再乘内层 $(\\sin x)\\prime$。',
         steps: [
