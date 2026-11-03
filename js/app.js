@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
  * 高数刷题营 - 主应用（UI 与交互）
  * ============================================================ */
 (function () {
@@ -105,37 +105,56 @@
     return f.length ? f : ['choice', 'solution', 'proof'];
   }
 
+  function track() { return state.settings.track === 'gaokao' ? 'gaokao' : 'gaoshu'; }
+  function isGk() { return track() === 'gaokao'; }
+  function dailyKey() { return isGk() ? today + '|gk' : today; }
+  function trackTypes() {
+    return isGk() ? QB.typesOfTrack('gaokao') : QB.typesOfSemester(state.settings.semester);
+  }
+
   function effDailyTypes() {
-    var sel = (state.settings.dailyTypes || []).filter(function (t) { return QB.types[t]; });
-    return sel.length ? sel : QB.typesOfSemester(state.settings.semester);
+    var sel = (state.settings.dailyTypes || []).filter(function (t) {
+      return QB.types[t] && (isGk() ? QB.types[t].track === 'gaokao' : QB.types[t].track !== 'gaokao');
+    });
+    if (sel.length) return sel;
+    return trackTypes();
   }
 
   function ensureDaily() {
-    var d = state.daily[today];
+    var key = dailyKey();
+    var d = state.daily[key];
     var effTypes = effDailyTypes();
     var sel = effTypes.slice().sort().join(',');
     var curSel = d && d.typeIds ? d.typeIds : '';
-    var formsSel = effForms(state.settings.dailyForms).slice().sort().join(',');
+    var formsSel = isGk() ? 'gk-plan' : effForms(state.settings.dailyForms).slice().sort().join(',');
     var curForms = d && d.forms ? d.forms : '';
-    var sem = state.settings.semester;
-    if (!d || d.difficulty !== state.settings.difficulty || curSel !== sel || curForms !== formsSel || d.semester !== sem) {
+    var sem = isGk() ? 0 : state.settings.semester;
+    if (!d || d.difficulty !== state.settings.difficulty || curSel !== sel || curForms !== formsSel || d.semester !== sem || d.track !== track()) {
       // 举一反三：避开每个题型上一次做过的原题（同模板同参数）
       var avoidMap = {};
       Object.keys(state.types).forEach(function (t) {
         if (state.types[t] && state.types[t].lastSig) avoidMap[t] = [state.types[t].lastSig];
       });
-      d = S.buildDaily({
-        typesState: state.types, today: today,
-        difficulty: state.settings.difficulty, count: 10, avoidMap: avoidMap,
-        typeIds: effTypes,
-        forms: effForms(state.settings.dailyForms)
-      });
+      if (isGk()) {
+        d = S.buildGaokaoDaily({
+          typesState: state.types, today: today,
+          difficulty: state.settings.difficulty, avoidMap: avoidMap
+        });
+      } else {
+        d = S.buildDaily({
+          typesState: state.types, today: today,
+          difficulty: state.settings.difficulty, count: 10, avoidMap: avoidMap,
+          typeIds: effTypes,
+          forms: effForms(state.settings.dailyForms)
+        });
+      }
       d.difficulty = state.settings.difficulty; // 关键：给套装盖章难度，避免每次误判重建
       d.typeIds = sel;                          // 记录组卷所用题型，用于判断是否需要重建
       d.forms = formsSel;                       // 记录组卷所用形式
       d.semester = sem;                         // 记录组卷所用学期
+      d.track = track();
       d.answers = {};
-      state.daily[today] = d;
+      state.daily[key] = d;
       Object.keys(d.used).forEach(function (t) {
         state.types[t] = S.afterShow(state.types[t], today);
       });
@@ -251,6 +270,64 @@
     save();
   }
 
+  /* ---------- 填空题：判分 ---------- */
+  function normAns(s) {
+    return String(s == null ? '' : s).trim()
+      .replace(/\s+/g, '')
+      .replace(/[−–—]/g, '-')
+      .replace(/（/g, '(').replace(/）/g, ')')
+      .replace(/，/g, ',')
+      .replace(/\\infty/g, '∞')
+      .replace(/π/g, 'pi');
+  }
+  function numOf(s) {
+    s = normAns(s).replace(/\$/g, '');
+    if (/^[-+]?\d+(\.\d+)?$/.test(s)) return parseFloat(s);
+    var m = s.match(/^([-+]?\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
+    if (m) return parseFloat(m[1]) / parseFloat(m[2]);
+    return null;
+  }
+  function checkFill(q, raw) {
+    var guess = normAns(raw);
+    if (!guess) return null;
+    var targets = [q.answer].concat(q.alt || []);
+    for (var i = 0; i < targets.length; i++) {
+      var t = normAns(targets[i]).replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '$1/$2').replace(/\$/g, '');
+      if (guess === t) return true;
+      var gn = numOf(guess), tn = numOf(t);
+      if (gn !== null && tn !== null && Math.abs(gn - tn) < 1e-6) return true;
+    }
+    return false;
+  }
+  function submitFill(container, q, raw, source) {
+    var a = container.answers[q.qid] || (container.answers[q.qid] = {});
+    a.filled = String(raw || '').trim();
+    a.submitted = true;
+    a.correct = checkFill(q, a.filled) === true;
+    var h = {
+      ts: Date.now(), date: today, source: source || 'daily', kind: 'fill',
+      typeId: q.typeId, difficulty: q.difficulty, tpl: q.tpl, qid: q.qid,
+      question: q.question, answer: q.answer, chosen: a.filled, correct: a.correct, mark: a.mark || ''
+    };
+    var found = false;
+    for (var i = state.history.length - 1; i >= 0; i--) {
+      if (state.history[i].qid === q.qid) { state.history[i] = h; found = true; break; }
+    }
+    if (!found) state.history.push(h);
+    if (a.correct) {
+      var e = findWrong(q.qid);
+      if (e && e.mark === 'wrong') removeWrong(q.qid);
+      if (source === 'redo' && container.sourceIds) {
+        var qi = container.questions.indexOf(q);
+        var se = findWrong(container.sourceIds[qi]);
+        if (se) se.corrected = true;
+      }
+    } else {
+      upsertWrong(q, a.mark || 'wrong');
+    }
+    save();
+  }
+
   // 解答题/证明题：点击「已完成」→ 记录 + 标记已查看答案（不参与正确率统计）
   function markSolved(container, q, source) {
     var a = container.answers[q.qid] || (container.answers[q.qid] = {});
@@ -289,6 +366,11 @@
     $('#tabs').innerHTML = html;
     $('#themeBtn').textContent = state.settings.theme === 'dark' ? '☀️' : '🌙';
     document.body.setAttribute('data-theme', state.settings.theme);
+    $$('#trackSeg [data-track]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-track') === track());
+    });
+    var activeTab = $('#tabs .tab.active');
+    if (activeTab) { /* 保持滚动位置 */ }
   }
 
   function switchView(v) {
@@ -306,7 +388,11 @@
     }).length;
     var allDone = answered >= d.questions.length;
 
-    var dueHtml = d.due.length ? d.due.map(function (u) {
+    var dueList2 = (d.due || []).filter(function (u) {
+      var m = QB.types[u.typeId];
+      return m && (isGk() ? m.track === 'gaokao' : m.track !== 'gaokao');
+    });
+    var dueHtml = dueList2.length ? dueList2.map(function (u) {
       var m = QB.types[u.typeId];
       return '<span class="chip" style="--tc:' + m.color + '">' + esc(m.short) + '<i>' + esc(u.reason) + '</i></span>';
     }).join('') : '<span class="chip">全部题型首次接触</span>';
@@ -317,7 +403,7 @@
     }).join('');
 
     var sel = state.settings.dailyTypes || [];
-    var semTypes = QB.typesOfSemester(state.settings.semester);
+    var semTypes = trackTypes();
     var typeChips = semTypes.map(function (t) {
       var m = QB.types[t];
       var on = sel.indexOf(t) >= 0;
@@ -341,11 +427,17 @@
     html += '<div class="daily-meta card">';
     html += '<div class="dm-row1"><span class="dm-date">📅 ' + today + '</span><div class="dm-diff">难度：<span class="segs">' + diffs + '</span></div></div>';
     html += '<div class="dm-row2"><span class="dm-prog">今日进度 <b>' + answered + '</b>/' + d.questions.length + '</span><div class="pbar"><div class="pbar-in" style="width:' + Math.round(answered / d.questions.length * 100) + '%"></div></div></div>';
-    html += '<div class="dm-row3"><span class="dm-plan">学期</span><div class="dm-chips">' + semChips + '</div></div>';
-    html += '<div class="dm-row3"><span class="dm-plan">自选题型</span><div class="dm-chips">' + typeChips +
-      '<button class="seg' + (sel.length === 0 ? ' active' : '') + '" data-dtype="" style="--tc:var(--muted)">全部</button></div></div>';
-    html += '<div class="dm-row3"><span class="dm-plan">题型形式</span><div class="dm-chips">' + formChips + '</div></div>';
-    html += '<div class="dm-row3"><span class="dm-plan">今日复习计划</span><div class="dm-chips">' + dueHtml + '</div></div>';
+    if (isGk()) {
+      html += '<div class="dm-row3"><span class="dm-plan">卷面题型</span><div class="dm-chips">' + typeChips +
+        '<button class="seg' + (sel.length === 0 ? ' active' : '') + '" data-dtype="" style="--tc:var(--muted)">全部</button></div></div>';
+      html += '<div class="dm-row3"><span class="dm-plan">今日复习计划</span><div class="dm-chips">' + dueHtml + '</div></div>';
+    } else {
+      html += '<div class="dm-row3"><span class="dm-plan">学期</span><div class="dm-chips">' + semChips + '</div></div>';
+      html += '<div class="dm-row3"><span class="dm-plan">自选题型</span><div class="dm-chips">' + typeChips +
+        '<button class="seg' + (sel.length === 0 ? ' active' : '') + '" data-dtype="" style="--tc:var(--muted)">全部</button></div></div>';
+      html += '<div class="dm-row3"><span class="dm-plan">题型形式</span><div class="dm-chips">' + formChips + '</div></div>';
+      html += '<div class="dm-row3"><span class="dm-plan">今日复习计划</span><div class="dm-chips">' + dueHtml + '</div></div>';
+    }
     html += '</div>';
 
     if (allDone) {
@@ -362,6 +454,8 @@
     opts = opts || {};
     var score = 0;
     var choiceTotal = 0;
+    var fillTotal = 0;
+    var fillScore = 0;
     var solveTotal = 0;
     var solveDone = 0;
     var marks = { mastered: 0, wobbly: 0, not_mastered: 0 };
@@ -370,23 +464,30 @@
       if (q.kind === 'solve') {
         solveTotal++;
         if (a.submitted === true) solveDone++;
+      } else if (q.kind === 'fill') {
+        fillTotal++;
+        if (a.correct) { score++; fillScore++; }
       } else {
         choiceTotal++;
         if (a.correct) score++;
       }
       if (a.mark && marks[a.mark] !== undefined) marks[a.mark]++;
     });
-    var pct = choiceTotal ? Math.round(score / choiceTotal * 100) : 0;
-    var msg = choiceTotal === 0
+    var gradeTotal = choiceTotal + fillTotal;
+    var pct = gradeTotal ? Math.round(score / gradeTotal * 100) : 0;
+    var msg = gradeTotal === 0
       ? '解答/证明题已完成，记得对照解析检查每步推理 📘'
-      : pct === 100 ? '选择题全对！太强了，明天的题会更有挑战 🌟'
+      : pct === 100 ? '全对！太强了，明天的题会更有挑战 🌟'
       : pct >= 80 ? '很棒！错题已进错题本，记得看一眼解析 📘'
       : pct >= 60 ? '不错！把"未掌握"的题明天再来一轮 💪'
       : '别灰心！把每题解析看懂，明天同类题还会再出现 ✊';
     var html = '<div class="summary card">';
     html += '<h2>' + (opts.title || '练习完成') + '</h2>';
-    if (choiceTotal) {
-      html += '<div class="score"><b>' + score + '</b><span>/' + choiceTotal + ' 选择题正确率 ' + pct + '%</span></div>';
+    if (gradeTotal) {
+      var parts = [];
+      if (choiceTotal) parts.push(choiceTotal + ' 道选择题' + (fillTotal ? '' : ''));
+      if (fillTotal) parts.push(fillTotal + ' 道填空题');
+      html += '<div class="score"><b>' + score + '</b><span>/' + gradeTotal + ' 客观题正确率 ' + pct + '%（' + parts.join(' + ') + '）</span></div>';
     }
     if (solveTotal) {
       html += '<div class="sum-solve">📝 解答/证明题：已完成 <b>' + solveDone + '</b>/' + solveTotal + '</div>';
@@ -445,8 +546,9 @@
     html += '<div class="qc-head">' +
       '<span class="qc-no">第 ' + (idx + 1) + '/' + d.questions.length + ' 题</span>' +
       typeBadge(q.typeId) + diffBadge(q.difficulty) +
+      (q.kind === 'fill' ? '<span class="chip chip-fill">填空题</span>' : '') +
       (isSolve ? '<span class="chip chip-solve">' + (q.form === 'proof' ? '证明题' : '解答题') + '</span>' : '') +
-      (q.tech ? '<span class="chip chip-tech" title="本题考察的方法">' + esc(q.tech) + '</span>' : '') +
+      (q.tech ? '<span class="chip chip-tech" title="本题考察的知识点">' + esc(q.tech) + '</span>' : '') +
       '<span class="chip chip-reason">' + esc(q.dueReason) + '</span></div>';
     html += marksHtml;
     html += '<div class="qc-question">' + mathHtml(q.question, true) + '</div>';
@@ -460,6 +562,25 @@
       } else {
         html += '<div class="solve-hint">📝 这是一道解答/证明题：请先在纸上独立完成，再点下面的按钮对照答案。</div>';
         html += '<div class="qc-actions"><button class="btn primary" data-solvedone data-qid="' + q.qid + '">✓ 已完成（查看答案与解析）</button></div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    if (q.kind === 'fill') {
+      // 填空题：输入答案后判对错
+      if (answered) {
+        var ok = a.correct === true;
+        html += '<div class="qc-fill-ans"><span class="fa-label">你的答案</span><span class="fa-val">' + esc(a.filled || '') + '</span></div>';
+        html += '<div class="qc-feedback ' + (ok ? 'fb-ok' : 'fb-no') + '">';
+        html += ok ? '✅ 回答正确！' : '❌ 回答错误';
+        html += '<div class="fb-answer">正确答案：' + mathHtml(q.answer, true) + '</div>';
+        html += '</div>';
+        html += solutionBlock(q);
+      } else {
+        html += '<div class="qc-fill"><input id="fillInput" class="fill-input" type="text" inputmode="text" autocomplete="off" placeholder="在这里输入你的答案" value="' + esc(a.filled || '') + '">' +
+          '<button class="btn primary" data-fillsubmit data-qid="' + q.qid + '">提交答案</button></div>';
+        html += '<div class="fill-tip">💡 填空题直接输入答案（数字、分数、区间等），按回车或点按钮提交。</div>';
       }
       html += '</div>';
       return html;
@@ -520,7 +641,7 @@
     }).length;
     var allDone = answered >= set.questions.length;
 
-    var typeLabels = s.typeIds.length ? s.typeIds.map(function (t) { return QB.types[t].short; }).join('、') : '全部题型';
+    var typeLabels = s.typeIds.length ? s.typeIds.map(function (t) { return QB.types[t].short; }).join('、') : (isGk() ? '全部卷面题型' : '全部题型');
     var diffLabel = CUSTOM_DIFFS[s.difficulty] ? CUSTOM_DIFFS[s.difficulty].name : '混合';
     var formLabels = effForms(s.forms).map(function (f) { return FORM_META[f].name; }).join('、');
 
@@ -531,7 +652,7 @@
       '<div class="pbar"><div class="pbar-in" style="width:' + Math.round(answered / set.questions.length * 100) + '%"></div></div></div>';
     html += '<div class="dm-row3"><span class="dm-plan">题型与难度</span><div class="dm-chips">' +
       '<span class="chip" style="--tc:#6366f1">' + esc(typeLabels) + '</span>' +
-      '<span class="chip" style="--tc:#0ea5e9">' + esc(formLabels) + '</span>' +
+      (isGk() ? '' : '<span class="chip" style="--tc:#0ea5e9">' + esc(formLabels) + '</span>') +
       '<span class="chip" style="--tc:' + CUSTOM_DIFFS[s.difficulty].color + '">' + esc(diffLabel) + '</span></div></div>';
     html += '</div>';
 
@@ -550,7 +671,7 @@
 
   function renderCustomConfig() {
     var s = state.custom.settings;
-    var semTypes = QB.typesOfSemester(state.settings.semester);
+    var semTypes = trackTypes();
 
     var typesHtml = semTypes.map(function (t) {
       var m = QB.types[t];
@@ -585,6 +706,17 @@
 
     var html = '<div class="cfg card">';
     html += '<div class="cfg-title">🎯 专项练习</div>';
+    if (isGk()) {
+      html += '<div class="cfg-desc">勾选想练的<b>卷面题型</b>（选择题 / 填空题 / 解答题，可多选），选好难度和题量后开始。专项练习独立于每日 10 题，标记的掌握状态同样影响错题本与掌握度。</div>';
+      html += '<div class="cfg-block"><div class="cfg-label">📖 卷面题型（已选 ' + s.typeIds.length + '/' + semTypes.length + '）</div>';
+      html += '<div class="ctype-grid">' + typesHtml + '</div></div>';
+      html += '<div class="cfg-block"><div class="cfg-label">🎚️ 题目难度</div><div class="segs">' + diffsHtml + '</div></div>';
+      html += '<div class="cfg-block"><div class="cfg-label">🔢 题量</div><div class="segs">' + countsHtml + '</div></div>';
+      html += '<button class="btn cfg-start" data-cstart>开始练习（' + s.count + ' 题，' + (s.typeIds.length ? '已选题型' : '全部卷面题型') + '）</button>';
+      html += '</div>';
+      $('#app').innerHTML = html;
+      return;
+    }
     html += '<div class="cfg-desc">先选<b>学期</b>，再勾选想练的章节（可多选）、题型形式（选择题/解答题/证明题），选好难度和题量后开始。专项练习独立于每日 10 题，标记的掌握状态同样影响复习计划与错题本。</div>';
 
     html += '<div class="cfg-block"><div class="cfg-label">🎓 学期</div><div class="segs">' + csemChips + '</div></div>';
@@ -723,9 +855,9 @@
       html += '<div class="stats-note card">📝 其中解答/证明题 <b>' + solveCount + '</b> 道（按「已完成」记录，不计入选择题正确率）</div>';
     }
 
-    // 各题型统计（按当前学期）
-    html += '<div class="type-stats card"><div class="ts-title">各章节掌握情况（' + esc(QB.semesters[state.settings.semester].name) + '）</div>';
-    QB.typesOfSemester(state.settings.semester).forEach(function (t) {
+    // 各题型统计（按当前板块/学期）
+    html += '<div class="type-stats card"><div class="ts-title">各章节掌握情况（' + esc(isGk() ? QB.tracks.gaokao.name : QB.semesters[state.settings.semester].name) + '）</div>';
+    trackTypes().forEach(function (t) {
       var m = QB.types[t];
       var hs = state.history.filter(function (h) { return h.typeId === t; });
       var gr = hs.filter(function (h) { return h.correct !== null && h.correct !== undefined; });
@@ -772,7 +904,7 @@
 
   /* ---------- 掌握度 ---------- */
   function renderMastery() {
-    var semName = QB.semesters[state.settings.semester].name;
+    var semName = isGk() ? QB.tracks.gaokao.name : QB.semesters[state.settings.semester].name;
     var html = '<div class="mas-head card"><div class="ts-title">🧭 掌握度总览（' + esc(semName) + '）</div>' +
       '<div class="mas-rules"><b>复习节奏：</b>' +
       '<span class="tag mark-mastered">已掌握 → 7 天后出类似题</span>' +
@@ -780,7 +912,7 @@
       '<span class="tag mark-not">未掌握 → 连续 2 天出类似题</span>' +
       '</div></div>';
 
-    html += '<div class="mas-grid">' + QB.typesOfSemester(state.settings.semester).map(function (t) {
+    html += '<div class="mas-grid">' + trackTypes().map(function (t) {
       var m = QB.types[t];
       var hs = state.history.filter(function (h) { return h.typeId === t; });
       var gr = hs.filter(function (h) { return h.correct !== null && h.correct !== undefined; });
@@ -815,6 +947,40 @@
       renderShell();
     });
 
+    // 板块切换：高数 / 北京高考
+    var segEl = $('#trackSeg');
+    if (segEl) {
+      segEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-track]');
+        if (!btn) return;
+        var tr = btn.getAttribute('data-track');
+        if (tr === (state.settings.track || 'gaoshu')) return;
+        var dc = state.daily[dailyKey()];
+        var answeredNow = dc && dc.answers ? Object.keys(dc.answers).filter(function (k) {
+          return dc.answers[k].submitted === true;
+        }).length : 0;
+        if (answeredNow > 0 && !window.confirm('切换板块会换成另一套题（已完成 ' + answeredNow + ' 题的记录会保留在错题本/记录里）。继续吗？')) {
+          return;
+        }
+        state.settings.track = tr;
+        state.settings.dailyTypes = [];
+        state.custom.set = null;
+        view = 'daily';
+        curIdx = 0;
+        save();
+        render();
+      });
+    }
+
+    // 填空题：回车提交
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var inp = document.getElementById('fillInput');
+      if (!inp || document.activeElement !== inp) return;
+      var fs = document.querySelector('[data-fillsubmit]');
+      if (fs) { e.preventDefault(); fs.click(); }
+    });
+
     // Tab 切换
     $('#tabs').addEventListener('click', function (e) {
       var btn = e.target.closest('[data-view]');
@@ -840,7 +1006,7 @@
       if (semBtn) {
         var sv = parseInt(semBtn.getAttribute('data-sem'), 10);
         if (sv === state.settings.semester) return;
-        var dsS = state.daily[today];
+        var dsS = state.daily[dailyKey()];
         var answeredS = dsS && dsS.answers ? Object.keys(dsS.answers).filter(function (k) {
           return dsS.answers[k].submitted === true;
         }).length : 0;
@@ -865,7 +1031,7 @@
         else if (cur.indexOf(tv) >= 0) next = cur.filter(function (x) { return x !== tv; });
         else next = cur.concat([tv]);
         // 若今天已有作答，更改题型会重新组卷，提醒用户
-        var ds = state.daily[today];
+        var ds = state.daily[dailyKey()];
         var answeredNow = ds && ds.answers ? Object.keys(ds.answers).filter(function (k) {
           return ds.answers[k].submitted === true;
         }).length : 0;
@@ -887,7 +1053,7 @@
         var nextF = curF.indexOf(fv) >= 0 ? curF.filter(function (x) { return x !== fv; }) : curF.concat([fv]);
         if (!nextF.length) nextF = [fv];               // 至少保留一种形式
         var normalized = nextF.length === 3 ? [] : nextF; // 三种全选 = 不限
-        var dsF = state.daily[today];
+        var dsF = state.daily[dailyKey()];
         var answeredF = dsF && dsF.answers ? Object.keys(dsF.answers).filter(function (k) {
           return dsF.answers[k].submitted === true;
         }).length : 0;
@@ -956,14 +1122,17 @@
       var cst = t.closest('[data-cstart]');
       if (cst) {
         var cs2 = state.custom.settings;
-        var effTypes2 = cs2.typeIds.length ? cs2.typeIds : QB.typesOfSemester(state.settings.semester);
+        var effTypes2 = (cs2.typeIds || []).filter(function (t) {
+          return QB.types[t] && (isGk() ? QB.types[t].track === 'gaokao' : QB.types[t].track !== 'gaokao');
+        });
+        if (!effTypes2.length) effTypes2 = trackTypes();
         var avoidMap2 = {};
         effTypes2.forEach(function (tt) {
           if (state.types[tt] && state.types[tt].lastSig) avoidMap2[tt] = [state.types[tt].lastSig];
         });
         var built = S.buildCustom({
           typeIds: effTypes2, difficulty: cs2.difficulty, count: cs2.count,
-          forms: effForms(cs2.forms), avoidMap: avoidMap2
+          forms: isGk() ? [] : effForms(cs2.forms), avoidMap: avoidMap2
         });
         state.custom.set = { date: today, questions: built.questions, answers: {} };
         Object.keys(built.lastSigs).forEach(function (tt) {
@@ -1009,6 +1178,20 @@
           submitAnswer(d2, q2, a2.chosen, curSource());
           renderCurrentPractice();
         }
+        return;
+      }
+
+      // 填空题：提交答案
+      var fsub = t.closest('[data-fillsubmit]');
+      if (fsub) {
+        var qidF = fsub.getAttribute('data-qid');
+        var dF = curContainer();
+        var qF = dF.questions.filter(function (x) { return x.qid === qidF; })[0];
+        var inp = document.getElementById('fillInput');
+        var raw = inp ? inp.value : '';
+        if (String(raw).trim() === '') { if (inp) inp.focus(); return; }
+        submitFill(dF, qF, raw, curSource());
+        renderCurrentPractice();
         return;
       }
 
@@ -1164,6 +1347,16 @@
   }
 
   function init() {
+    // 支持 ?track=gaokao 直接进入北京高考板块（便于分享/书签）
+    try {
+      var mt = /[?&]track=(gaoshu|gaokao)/.exec(location.search);
+      if (mt && mt[1] !== (state.settings.track || 'gaoshu')) {
+        state.settings.track = mt[1];
+        state.settings.dailyTypes = [];
+        state.custom.set = null;
+        save();
+      }
+    } catch (e) { }
     bindEvents();
     render();
     // 跨天自动刷新
@@ -1180,11 +1373,12 @@
     today: today,
     // 测试辅助：用给定题目替换今日套题（用于验证解答题流程）
     setDailyQuestions: function (qs) {
-      state.daily[today] = {
+      state.daily[dailyKey()] = {
         date: today, difficulty: state.settings.difficulty,
         typeIds: effDailyTypes().slice().sort().join(','),
         semester: state.settings.semester,
-        forms: effForms(state.settings.dailyForms).slice().sort().join(','),
+        track: track(),
+        forms: isGk() ? 'gk-plan' : effForms(state.settings.dailyForms).slice().sort().join(','),
         questions: qs, answers: {}, due: [], used: {}
       };
       save();
