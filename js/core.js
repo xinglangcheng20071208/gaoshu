@@ -63,21 +63,30 @@
   /* ---------- 题型元数据（semester: 1 大一上 / 2 大一下） ---------- */
   var TYPES = {
     /* 大一上：一元微积分 */
-    limit:      { name: '极限与连续',     short: '极限',     icon: '∞',  color: '#6366f1', semester: 1 },
-    derivative: { name: '导数与微分',     short: '导数',     icon: '′',  color: '#0ea5e9', semester: 1 },
-    mvt:        { name: '中值定理与导数应用', short: '中值定理', icon: '↗', color: '#f59e0b', semester: 1 },
-    indint:     { name: '不定积分',       short: '不定积分', icon: '∫',  color: '#10b981', semester: 1 },
-    defint:     { name: '定积分',         short: '定积分',   icon: '∮',  color: '#14b8a6', semester: 1 },
-    defapp:     { name: '定积分的应用',   short: '积分应用', icon: '⌀',  color: '#8b5cf6', semester: 1 },
-    ode:        { name: '微分方程',       short: '微分方程', icon: 'y′', color: '#ef4444', semester: 1 },
+    limit:      { name: '极限与连续',     short: '极限',     icon: '∞',  color: '#6366f1', semester: 1, track: 'gaoshu' },
+    derivative: { name: '导数与微分',     short: '导数',     icon: '′',  color: '#0ea5e9', semester: 1, track: 'gaoshu' },
+    mvt:        { name: '中值定理与导数应用', short: '中值定理', icon: '↗', color: '#f59e0b', semester: 1, track: 'gaoshu' },
+    indint:     { name: '不定积分',       short: '不定积分', icon: '∫',  color: '#10b981', semester: 1, track: 'gaoshu' },
+    defint:     { name: '定积分',         short: '定积分',   icon: '∮',  color: '#14b8a6', semester: 1, track: 'gaoshu' },
+    defapp:     { name: '定积分的应用',   short: '积分应用', icon: '⌀',  color: '#8b5cf6', semester: 1, track: 'gaoshu' },
+    ode:        { name: '微分方程',       short: '微分方程', icon: 'y′', color: '#ef4444', semester: 1, track: 'gaoshu' },
     /* 大一下：多元微积分与级数 */
-    vector:     { name: '向量与空间解析几何', short: '向量', icon: '→', color: '#f43f5e', semester: 2 },
-    multivar:   { name: '多元函数微分学', short: '多元微分', icon: '∂', color: '#0d9488', semester: 2 },
-    doubleint:  { name: '重积分',         short: '重积分',   icon: '∬',  color: '#7c3aed', semester: 2 },
-    tripleint:  { name: '三重积分',       short: '三重积分', icon: '∭',  color: '#0891b2', semester: 2 },
-    lineint:    { name: '曲线积分与格林公式', short: '曲线积分', icon: '∮', color: '#c026d3', semester: 2 },
-    series:     { name: '无穷级数',       short: '级数',     icon: '∑',  color: '#ea580c', semester: 2 },
-    ode2:       { name: '二阶常系数微分方程', short: '二阶方程', icon: 'y″', color: '#b91c1c', semester: 2 }
+    vector:     { name: '向量与空间解析几何', short: '向量', icon: '→', color: '#f43f5e', semester: 2, track: 'gaoshu' },
+    multivar:   { name: '多元函数微分学', short: '多元微分', icon: '∂', color: '#0d9488', semester: 2, track: 'gaoshu' },
+    doubleint:  { name: '重积分',         short: '重积分',   icon: '∬',  color: '#7c3aed', semester: 2, track: 'gaoshu' },
+    tripleint:  { name: '三重积分',       short: '三重积分', icon: '∭',  color: '#0891b2', semester: 2, track: 'gaoshu' },
+    lineint:    { name: '曲线积分与格林公式', short: '曲线积分', icon: '∮', color: '#c026d3', semester: 2, track: 'gaoshu' },
+    series:     { name: '无穷级数',       short: '级数',     icon: '∑',  color: '#ea580c', semester: 2, track: 'gaoshu' },
+    ode2:       { name: '二阶常系数微分方程', short: '二阶方程', icon: 'y″', color: '#b91c1c', semester: 2, track: 'gaoshu' },
+    /* 北京高考：按卷面题型分类（选择 / 填空 / 解答） */
+    gkChoice:   { name: '高考选择题',     short: '选择题',   icon: '①', color: '#2563eb', track: 'gaokao' },
+    gkFill:     { name: '高考填空题',     short: '填空题',   icon: '✎',  color: '#0891b2', track: 'gaokao' },
+    gkSolve:    { name: '高考解答题',     short: '解答题',   icon: '✍',  color: '#7c3aed', track: 'gaokao' }
+  };
+
+  var TRACKS = {
+    gaoshu: { name: '高数', desc: '大学高等数学（大一上 / 大一下）' },
+    gaokao: { name: '北京高考', desc: '北京高考数学 · 选择/填空/解答' }
   };
 
   var SEMESTERS = {
@@ -87,6 +96,10 @@
 
   function typesOfSemester(sem) {
     return Object.keys(TYPES).filter(function (t) { return TYPES[t].semester === sem; });
+  }
+
+  function typesOfTrack(track) {
+    return Object.keys(TYPES).filter(function (t) { return TYPES[t].track === track; });
   }
 
   var DIFFICULTIES = {
@@ -163,8 +176,9 @@
     q.difficulty = q.difficulty || tpl.difficulty;
     q.sig = sig;
     q.tech = tpl.tech || '';
-    q.form = tpl.form || 'choice';             // choice 选择题 | solution 解答题 | proof 证明题
-    q.kind = tpl.kind || (tpl.form && tpl.form !== 'choice' ? 'solve' : 'choice');
+    q.form = tpl.form || 'choice';             // choice 选择题 | solution 解答题 | proof 证明题 | fill 填空题
+    q.kind = tpl.kind || (tpl.form === 'fill' ? 'fill'
+      : (tpl.form && tpl.form !== 'choice') ? 'solve' : 'choice');
     q.options = q.options || [];
     q.answerIndex = (typeof q.answerIndex === 'number') ? q.answerIndex : -1;
     return q;
@@ -173,8 +187,10 @@
   /* ---------- 导出 ---------- */
   return {
     types: TYPES,
+    tracks: TRACKS,
     semesters: SEMESTERS,
     typesOfSemester: typesOfSemester,
+    typesOfTrack: typesOfTrack,
     difficulties: DIFFICULTIES,
     templates: templates,
     register: register,
