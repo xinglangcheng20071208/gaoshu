@@ -9,7 +9,8 @@
 </head>
 <body data-theme="light">
 <header class="topbar">
-  <div class="brand"><span class="logo">∫</span><div class="brand-txt"><div class="brand-name">高数刷题营</div><div class="brand-sub">E2E 自测</div></div></div>
+  <div class="brand"><span class="logo">∫</span><div class="brand-txt"><div class="brand-name">高数刷题营</div><div class="brand-sub">高数 · 北京高考 · 每天 10 题 · 智能复习</div></div></div>
+  <div class="track-seg" id="trackSeg"><button data-track="gaoshu" class="on">高数</button><button data-track="gaokao">北京高考</button></div>
   <button id="themeBtn" class="icon-btn">🌙</button>
 </header>
 <nav class="tabs" id="tabs"></nav>
@@ -28,6 +29,7 @@
 <script src="../js/qb-more2.js"></script>
 <script src="../js/qb-solve.js"></script>
 <script src="../js/qb-sem2.js"></script>
+<script src="../js/qb-gaokao.js"></script>
 <script src="../js/scheduler.js"></script>
 <script src="../js/store.js"></script>
 <script src="../js/app.js"></script>
@@ -58,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function () {
   log('boot', true);
   setTimeout(go, 1200);
 });
-setTimeout(finish, 20000); // 兜底：20 秒内没跑完也输出结果
+setTimeout(finish, 60000); // 兜底：20 秒内没跑完也输出结果
 var pickIdx = 0;      // 本轮用来做"选择题流程"的题目下标（每日套题可能先出现解答题）
 var aligned = false;  // 是否已把卡片切到选择题
 window.addEventListener('load', function () {
@@ -388,7 +390,7 @@ function go() {
                                                                                                             log('semester-back-1', stS2.settings.semester === 1);
                                                                                                             log('daily-back-sem1', qsS2.every(function (q) { return sem1.indexOf(q.typeId) >= 0; }), 'types=' + qsS2.map(function (q) { return q.typeId; }).join(','));
                                                                                                             log('sem1-type-chips', document.querySelectorAll('[data-dtype]').length === sem1.length + 1);
-                                                                                                            finish();
+                                                                                                            gaokaoTest();
                                                                                                           }, 200);
                                                                                                         }, 200);
                                                                                                       }, 200);
@@ -442,6 +444,68 @@ function go() {
       }, 120);
     } catch (e) {
       log('exception', false, e.message);
+      finish();
+    }
+  }
+
+  /* ---------- 16. 北京高考板块 ---------- */
+  function gaokaoTest() {
+    try {
+      window.confirm = function () { return true; };
+      click(document.querySelector('[data-track="gaokao"]'));
+      step(function () {
+        var stG = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+        var gkKey = Object.keys(stG.daily).filter(function (k) { return k.indexOf('|gk') > 0; })[0];
+        var gkQs = gkKey ? stG.daily[gkKey].questions : [];
+        log('track-switched-gaokao', stG.settings.track === 'gaokao');
+        log('gaokao-10-questions', gkQs.length === 10, 'n=' + gkQs.length);
+        log('gaokao-6-choice', gkQs.filter(function (q) { return q.kind === 'choice'; }).length === 6);
+        log('gaokao-3-fill', gkQs.filter(function (q) { return q.kind === 'fill'; }).length === 3);
+        log('gaokao-1-solve', gkQs.filter(function (q) { return q.kind === 'solve'; }).length === 1);
+        log('gaokao-chips-3', document.querySelectorAll('[data-dtype]').length === 4, 'n=' + document.querySelectorAll('[data-dtype]').length);
+        log('subtitle-updated', (document.querySelector('.brand-sub') || {}).textContent.indexOf('北京高考') >= 0);
+        var fill1 = -1, fill2 = -1;
+        gkQs.forEach(function (q, i) {
+          if (q.kind !== 'fill') return;
+          if (fill1 < 0) fill1 = i; else if (fill2 < 0) fill2 = i;
+        });
+        click(document.querySelector('.dot[data-go="' + fill1 + '"]'));
+        step(function () {
+          log('fill-input-shown', !!document.querySelector('.fill-input'));
+          log('fill-kind-chip', !!document.querySelector('.chip-fill'));
+          var fq = gkQs[fill1];
+          document.querySelector('.fill-input').value = fq.answer;
+          click(document.querySelector('[data-fillsubmit]'));
+          step(function () {
+            log('fill-correct-feedback', !!document.querySelector('.fb-ok'));
+            var stF = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+            var aF = stF.daily[gkKey].answers[fq.qid] || {};
+            log('fill-recorded', aF.submitted === true && aF.correct === true);
+            var hF = stF.history[stF.history.length - 1];
+            log('fill-history-kind', hF && hF.kind === 'fill' && hF.correct === true);
+            click(document.querySelector('.dot[data-go="' + fill2 + '"]'));
+            step(function () {
+              document.querySelector('.fill-input').value = 'zzz-wrong';
+              click(document.querySelector('[data-fillsubmit]'));
+              step(function () {
+                log('fill-wrong-feedback', !!document.querySelector('.fb-no'));
+                var stW = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                var qidW = gkQs[fill2].qid;
+                log('fill-wrong-in-wrongbook', stW.wrongbook.some(function (e) { return e.id === qidW; }));
+                click(document.querySelector('[data-track="gaoshu"]'));
+                step(function () {
+                  var stB = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                  log('track-back-gaoshu', stB.settings.track === 'gaoshu');
+                  log('gaoshu-daily-survives', !!stB.daily[Object.keys(stB.daily).filter(function (k) { return k.indexOf('|gk') < 0; })[0]]);
+                  finish();
+                }, 300);
+              }, 250);
+            }, 250);
+          }, 250);
+        }, 250);
+      }, 250);
+    } catch (e) {
+      log('gaokao-exception', false, e.message);
       finish();
     }
   }
