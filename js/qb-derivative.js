@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 题库：导数与微分（19 个模板：求导 12 + 微分 7）
  * ============================================================ */
 (function (root) {
@@ -44,7 +44,7 @@
       var d = bo(correct, ['\\cos(' + k + 'x)', '-' + k + '\\cos(' + k + 'x)', k + '\\sin(' + k + 'x)'], rng);
       return {
         params: { k: k },
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}\\sin(' + k + 'x)$',
+        question: '设 $y=\\sin(' + k + 'x)$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '复合函数求导：外层 $\\sin$ 求导得 $\\cos$，再乘内层 $' + k + 'x$ 的导数 $' + k + '$。',
         steps: [
@@ -67,7 +67,7 @@
       var d = bo(correct, ['e^{' + k + 'x}', k + 'e^{x}', k * k + 'e^{' + k + 'x}'], rng);
       return {
         params: { k: k },
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}e^{' + k + 'x}$',
+        question: '设 $y=e^{' + k + 'x}$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '$e$ 的幂求导有个好记的性质：$e^{\\Box}$ 求导等于它自己，再乘内层的导数。',
         steps: [
@@ -90,7 +90,7 @@
       var d = bo(correct, ['\\frac{1}{' + k + 'x}', '\\frac{' + k + '}{x}', '\\ln ' + k], rng);
       return {
         params: { k: k },
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}\\ln(' + k + 'x)$',
+        question: '设 $y=\\ln(' + k + 'x)$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '先用对数性质拆开：$\\ln(' + k + 'x)=\\ln ' + k + '+\\ln x$。常数的导数是 0。',
         steps: [
@@ -115,7 +115,7 @@
       var d = bo(correct, [k + 'xe^{' + k + 'x}', '(1+x)e^{' + k + 'x}', '(1+' + k + ')e^{' + k + 'x}'], rng);
       return {
         params: { k: k },
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}\\left(xe^{' + k + 'x}\\right)$',
+        question: '设 $y=xe^{' + k + 'x}$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '两个函数相乘，用乘法法则：$(uv)\\prime = u\\prime v + uv\\prime$。',
         steps: [
@@ -141,7 +141,7 @@
       var d = bo(correct, ['\\frac{e^{x}}{(x+' + a + ')^2}', '\\frac{(x+' + (a + 1) + ')e^{x}}{(x+' + a + ')^2}', '-\\frac{e^{x}}{(x+' + a + ')^2}'], rng);
       return {
         params: { a: a },
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}\\frac{e^{x}}{x+' + a + '}$',
+        question: '设 $y=\\frac{e^{x}}{x+' + a + '}$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '除法用商法则：$\\left(\\frac{u}{v}\\right)\\prime = \\frac{u\\prime v - uv\\prime}{v^2}$。',
         steps: [
@@ -166,7 +166,7 @@
       var d = bo(correct, ['\\cos(' + k + 'x^2)', (2 * k) + 'x\\cos(x^2)', '2x\\cos(' + k + 'x^2)'], rng);
       return {
         params: { k: k },
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}\\sin(' + k + 'x^2)$',
+        question: '设 $y=\\sin(' + k + 'x^2)$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '两层复合：外层 $\\sin$，内层 $' + k + 'x^2$。从外往里一层层求导再相乘。',
         steps: [
@@ -271,7 +271,7 @@
       var d = bo(correct, ['x^{x}', 'x^{x}\\ln x', 'x\\cdot x^{x-1}'], rng);
       return {
         params: {},
-        question: '求导数 $\\frac{\\mathrm{d}}{\\mathrm{d}x}x^{x}\\;(x>0)$',
+        question: '设 $y=x^{x}\\;(x>0)$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '底数和指数都有 $x$，既不是纯幂函数也不是纯指数函数。套路：两边取对数，再求导。',
         steps: [
