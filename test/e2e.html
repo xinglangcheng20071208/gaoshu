@@ -27,6 +27,7 @@
 <script src="../js/qb-more.js"></script>
 <script src="../js/qb-more2.js"></script>
 <script src="../js/qb-solve.js"></script>
+<script src="../js/qb-sem2.js"></script>
 <script src="../js/scheduler.js"></script>
 <script src="../js/store.js"></script>
 <script src="../js/app.js"></script>
@@ -145,7 +146,7 @@ function go() {
                         click(document.querySelector('.tab[data-view="custom"]'));
                         step(function () {
                           log('custom-config-panel', !!document.querySelector('.cfg'));
-                          log('custom-start-disabled-init', document.querySelector('[data-cstart]').disabled === true);
+                          log('custom-start-enabled-init', document.querySelector('[data-cstart]').disabled === false);
                           log('custom-7-type-btns', document.querySelectorAll('.ctype').length === 7);
                           // 勾选第一个题型
                           click(document.querySelector('.ctype[data-ctype="limit"]'));
@@ -334,7 +335,49 @@ function go() {
                                                                                               var stC = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
                                                                                               var cset = stC.custom.set || { questions: [] };
                                                                                               log('custom-only-proof', cset.questions.length === 5 && cset.questions.every(function (q) { return q.form === 'proof'; }), 'forms=' + cset.questions.map(function (q) { return q.form; }).join(','));
-                                                                                              finish();
+
+                                                                                              // 15. 学期切换：大一下
+                                                                                              click(document.querySelector('.tab[data-view="daily"]'));
+                                                                                              step(function () {
+                                                                                                click(document.querySelector('[data-sem="2"]'));
+                                                                                                step(function () {
+                                                                                                  var stS = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                                                                  var dkS = Object.keys(stS.daily)[0];
+                                                                                                  var qsS = stS.daily[dkS].questions;
+                                                                                                  var sem2 = QuestionBank.typesOfSemester(2);
+                                                                                                  log('semester-switched-2', stS.settings.semester === 2);
+                                                                                                  log('daily-only-sem2', qsS.every(function (q) { return sem2.indexOf(q.typeId) >= 0; }), 'types=' + qsS.map(function (q) { return q.typeId; }).join(','));
+                                                                                                  log('sem2-type-chips', document.querySelectorAll('[data-dtype]').length === sem2.length + 1, 'n=' + document.querySelectorAll('[data-dtype]').length);
+                                                                                                  // 专项配置也应只显示大一下章节（先回到选题配置）
+                                                                                                  click(document.querySelector('.tab[data-view="custom"]'));
+                                                                                                  step(function () {
+                                                                                                    click(document.querySelector('[data-crestart]'));
+                                                                                                    step(function () {
+                                                                                                      log('custom-sem2-chips', document.querySelectorAll('.ctype').length === sem2.length, 'n=' + document.querySelectorAll('.ctype').length);
+                                                                                                      log('custom-sem-chips', document.querySelectorAll('[data-csem]').length === 2);
+                                                                                                      // 切回大一上
+                                                                                                      click(document.querySelector('[data-csem="1"]'));
+                                                                                                      step(function () {
+                                                                                                        log('custom-sem-restored', document.querySelectorAll('.ctype').length === QuestionBank.typesOfSemester(1).length);
+                                                                                                        click(document.querySelector('.tab[data-view="daily"]'));
+                                                                                                        step(function () {
+                                                                                                          click(document.querySelector('[data-sem="1"]'));
+                                                                                                          step(function () {
+                                                                                                            var stS2 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
+                                                                                                            var dkS2 = Object.keys(stS2.daily)[0];
+                                                                                                            var qsS2 = stS2.daily[dkS2].questions;
+                                                                                                            var sem1 = QuestionBank.typesOfSemester(1);
+                                                                                                            log('semester-back-1', stS2.settings.semester === 1);
+                                                                                                            log('daily-back-sem1', qsS2.every(function (q) { return sem1.indexOf(q.typeId) >= 0; }), 'types=' + qsS2.map(function (q) { return q.typeId; }).join(','));
+                                                                                                            log('sem1-type-chips', document.querySelectorAll('[data-dtype]').length === sem1.length + 1);
+                                                                                                            finish();
+                                                                                                          }, 200);
+                                                                                                        }, 200);
+                                                                                                      }, 200);
+                                                                                                    }, 200);
+                                                                                                  }, 200);
+                                                                                                }, 200);
+                                                                                              }, 200);
                                                                                             }, 200);
                                                                                           }, 200);
                                                                                         }, 200);
