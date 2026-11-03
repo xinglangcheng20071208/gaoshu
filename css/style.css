@@ -420,3 +420,19 @@ body {
 @media (min-width: 641px) and (max-width: 1024px) {
   .mas-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---------- 板块切换：高数 / 北京高考 ---------- */
+.track-seg { display: flex; gap: 3px; padding: 3px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); margin-right: 8px; }
+.track-seg button { border: 0; background: transparent; color: var(--muted); font-size: 12.5px; padding: 6px 10px; border-radius: 999px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.track-seg button.on { background: var(--card); color: #4f46e5; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+body[data-theme="dark"] .track-seg button.on { color: #a5b4fc; }
+
+/* ---------- 填空题 ---------- */
+.chip-fill { --tc: #0891b2; }
+.qc-fill { display: flex; gap: 10px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.fill-input { flex: 1 1 200px; min-width: 160px; padding: 12px 14px; font-size: 17px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); }
+.fill-input:focus { outline: none; border-color: #6366f1; }
+.fill-tip { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+.qc-fill-ans { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: var(--bg); display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.fa-label { font-size: 12.5px; color: var(--muted); }
+.fa-val { font-size: 17px; font-weight: 700; word-break: break-all; }
