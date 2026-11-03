@@ -21,7 +21,7 @@
   function defaultState() {
     return {
       version: 1,
-      settings: { difficulty: 'medium', theme: 'light', dailyTypes: [], dailyForms: [] }, // 空 = 全部
+      settings: { difficulty: 'medium', theme: 'light', dailyTypes: [], dailyForms: [], semester: 1 }, // 空 = 全部
       types: {},
       daily: {},
       custom: { settings: { typeIds: [], difficulty: 'mixed', count: 10, forms: [] }, set: null },
@@ -41,6 +41,7 @@
       if (!s.settings) s.settings = { difficulty: 'medium', theme: 'light' };
       if (s.settings.dailyTypes === undefined) s.settings.dailyTypes = [];
       if (s.settings.dailyForms === undefined) s.settings.dailyForms = [];
+      if (s.settings.semester === undefined) s.settings.semester = 1;
       if (!s.types) s.types = {};
       if (!s.daily) s.daily = {};
       if (!s.custom) s.custom = { settings: { typeIds: [], difficulty: 'mixed', count: 10, forms: [] }, set: null };
