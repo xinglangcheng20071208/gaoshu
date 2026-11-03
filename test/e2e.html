@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -59,20 +59,38 @@ document.addEventListener('DOMContentLoaded', function () {
   setTimeout(go, 1200);
 });
 setTimeout(finish, 20000); // 兜底：20 秒内没跑完也输出结果
+var pickIdx = 0;      // 本轮用来做"选择题流程"的题目下标（每日套题可能先出现解答题）
+var aligned = false;  // 是否已把卡片切到选择题
 window.addEventListener('load', function () {
   if (window.__rerenderAll) window.__rerenderAll();
 });
 function go() {
   try {
+    // 0. 对齐到一道选择题（每日套题可能先抽到解答/证明题，那没有选项）
+    if (!aligned) {
+      var st0 = window.__appDebug.state();
+      var dk0 = Object.keys(st0.daily)[0];
+      var qs0 = st0.daily[dk0].questions;
+      var ci = -1;
+      qs0.forEach(function (q, i) { if (ci < 0 && q.kind !== 'solve') ci = i; });
+      pickIdx = ci >= 0 ? ci : 0;
+      if (ci > 0) {
+        aligned = true;
+        click(document.querySelector('.dot[data-go="' + ci + '"]'));
+        setTimeout(go, 250);
+        return;
+      }
+      aligned = true;
+    }
     var card = document.querySelector('.qcard');
     if (!card) { log('render-card', false); return finish(); }
     log('render-card', true);
     log('marks-3-above', document.querySelectorAll('.mark-btn').length === 3);
     log('options-4', document.querySelectorAll('.opt').length === 4);
     var dbg0 = window.__appDebug;
-    log('daily-qid', dbg0.ensureDaily().questions[0].qid);
+    log('daily-qid', dbg0.ensureDaily().questions[pickIdx].qid);
     log('dom-qid', document.querySelector('.opt').getAttribute('data-qid'));
-    log('qid-match', dbg0.ensureDaily().questions[0].qid === document.querySelector('.opt').getAttribute('data-qid'));
+    log('qid-match', dbg0.ensureDaily().questions[pickIdx].qid === document.querySelector('.opt').getAttribute('data-qid'));
     log('settings-diff', dbg0.state().settings.difficulty);
     log('daily-diff', dbg0.ensureDaily().difficulty);
     var ls0 = localStorage.getItem('gaoshu_state_v1');
@@ -102,7 +120,7 @@ function go() {
           step(function () {
             var st = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
             var dailyKey = Object.keys(st.daily)[0];
-            var firstType = st.daily[dailyKey].questions[0].typeId;
+            var firstType = st.daily[dailyKey].questions[pickIdx].typeId;
             log('mark-saved-not_mastered', st.types[firstType] && st.types[firstType].status === 'not_mastered', JSON.stringify(st.types[firstType]));
             log('nmDays=1', st.types[firstType] && st.types[firstType].nmDays === 1);
             log('wrongbook-added', st.wrongbook.length >= 1);
@@ -122,7 +140,7 @@ function go() {
                 click(document.querySelector('[data-wmaster]'));
                 step(function () {
                   var st2 = JSON.parse(localStorage.getItem('gaoshu_state_v1'));
-                  var firstType2 = st2.daily[dailyKey].questions[0].typeId;
+                  var firstType2 = st2.daily[dailyKey].questions[pickIdx].typeId;
                   log('wmaster-removes-entry', st2.wrongbook.length === 0, 'n=' + st2.wrongbook.length);
                   log('wmaster-sets-mastered', st2.types[firstType2].status === 'mastered');
                   // 6. 学习记录
