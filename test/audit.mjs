@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
  * 题库自动审计脚本
  * 对每个模板大量生成题目，做「独立验算 + 数值等价检测」：
  *   1) 选项唯一、正确答案在选项中、无 NaN/undefined
@@ -108,6 +108,18 @@ for (const tpl of QB.templates) {
     if (!Array.isArray(q.steps) || q.steps.length < 1) { bad(tpl.id + ' 缺分步解析'); issues++; }
     const blob = JSON.stringify(q);
     if (/NaN|undefined/.test(blob)) { bad(tpl.id + ' 内容含 NaN/undefined'); issues++; }
+    // 题干/解析文本格式检查（防拼接笔误：x^2x、0x、连续符号、0 分母）
+    const textFields = [q.question, q.answer].concat(q.options || [])
+      .concat((q.steps || []).map(s => String(s.m) + ' ' + String(s.t)))
+      .concat([q.idea, q.pitfall]).filter(Boolean).join('\n');
+    const badText = [
+      [/x\^\{?\d+\}?x(?!\^)/, '幂次后直接跟 x（漏写运算符或多写 x）'],
+      [/[+\-]{2}/, '出现连续符号 ++ / -- / +-'],
+      [/[+\-({\s]0x(?![a-z])/i, '出现 0 系数项']
+    ];
+    for (const [re, desc] of badText) {
+      if (re.test(textFields)) { bad(tpl.id + ' 文本异常(' + desc + ')：' + textFields.replace(/\s+/g, ' ').slice(0, 140)); issues++; }
+    }
     // 选项检查（选择题）
     if (tpl.kind === 'solve') {
       if (q.options && q.options.length) { bad(tpl.id + ' 解答题不应有选项'); issues++; }
