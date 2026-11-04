@@ -453,3 +453,8 @@ body[data-theme="dark"] .track-seg button.on { color: #a5b4fc; }
 .sol-m::-webkit-scrollbar, .wc-q::-webkit-scrollbar, .h-q::-webkit-scrollbar {
   width: 0; height: 0; display: none;
 }
+
+/* ---------- 结算按钮（全部答完后出现） ---------- */
+.qnav-settle { margin-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.qnav-settle .btn { width: 100%; max-width: 420px; }
+.qnav-settle-tip { font-size: 12px; color: var(--muted); }
