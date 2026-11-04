@@ -1,10 +1,10 @@
-﻿/* ============================================================
+/* ============================================================
  * 题库：导数与微分（19 个模板：求导 12 + 微分 7）
  * ============================================================ */
 (function (root) {
   'use strict';
   var QB = (typeof module !== 'undefined' && module.exports) ? require('./core.js') : root.QuestionBank;
-  var ri = QB.ri, frac = QB.frac, signed = QB.signed, num = QB.num, bo = QB.buildOptions;
+  var ri = QB.ri, frac = QB.frac, signed = QB.signed, num = QB.num, bo = QB.buildOptions, coefX = QB.coefX, xpow = QB.xpow, powStr = QB.powStr;
 
   function ok4(o) { return new Set(o).size === 4; }
 
@@ -23,7 +23,7 @@
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '幂函数求导口诀：指数搬下来当系数，指数减 1。先求导，再代入 $x$ 的值。',
           steps: [
-            { m: 'f\\prime(x) = ' + n + 'x^{' + (n - 1) + '}',
+            { m: 'f\\prime(x) = ' + coefX(n, n - 1),
               t: '指数 ' + n + ' 搬到前面当系数，新的指数是 ' + (n - 1) + '。' },
             { m: 'f\\prime(' + c + ') = ' + n + '\\cdot ' + c + '^{' + (n - 1) + '} = ' + n + '\\times ' + Math.pow(c, n - 1) + ' = ' + correct,
               t: '把 $x=' + c + '$ 代进去：先算 $' + c + '^{' + (n - 1) + '}=' + Math.pow(c, n - 1) + '$，再乘 ' + n + '。' }
@@ -326,9 +326,9 @@
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '微分的公式：$\\mathrm{d}y = f\\prime(x)\\,\\mathrm{d}x$。先求导，再乘以 $\\mathrm{d}x$。',
           steps: [
-            { m: 'y\\prime = ' + n + 'x^{' + (n - 1) + '}',
+            { m: 'y\\prime = ' + coefX(n, n - 1),
               t: '先求导数：指数搬下来，指数减 1。' },
-            { m: '\\mathrm{d}y = ' + n + 'x^{' + (n - 1) + '}\\,\\mathrm{d}x',
+            { m: '\\mathrm{d}y = ' + coefX(n, n - 1) + '\\,\\mathrm{d}x',
               t: '微分 = 导数 × $\\mathrm{d}x$。' },
             { m: '\\mathrm{d}y\\big|_{x=' + c + '} = ' + n + '\\cdot ' + c + '^{' + (n - 1) + '}\\times 0.01 = ' + n + '\\times' + Math.pow(c, n - 1) + '\\times 0.01 = ' + correct,
               t: '代入 $x=' + c + '$ 和 $\\mathrm{d}x=0.01$ 计算。' }
