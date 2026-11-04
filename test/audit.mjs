@@ -115,7 +115,8 @@ for (const tpl of QB.templates) {
     const badText = [
       [/x\^\{?\d+\}?x(?!\^)/, '幂次后直接跟 x（漏写运算符或多写 x）'],
       [/[+\-]{2}/, '出现连续符号 ++ / -- / +-'],
-      [/[+\-({\s]0x(?![a-z])/i, '出现 0 系数项']
+      [/[+\-({\s]0x(?![a-z])/i, '出现 0 系数项'],
+      [/\\mathbb|\\varnothing|\\square|\\blacksquare/, '字体依赖符号（部分设备会显示乱码），建议改文字']
     ];
     for (const [re, desc] of badText) {
       if (re.test(textFields)) { bad(tpl.id + ' 文本异常(' + desc + ')：' + textFields.replace(/\s+/g, ' ').slice(0, 140)); issues++; }
