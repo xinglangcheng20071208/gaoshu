@@ -388,10 +388,8 @@
     }).length;
     var allDone = answered >= d.questions.length;
 
-    var dueList2 = (d.due || []).filter(function (u) {
-      var m = QB.types[u.typeId];
-      return m && (isGk() ? m.track === 'gaokao' : m.track !== 'gaokao');
-    });
+    var dueTypes = effDailyTypes();
+    var dueList2 = (d.due || []).filter(function (u) { return dueTypes.indexOf(u.typeId) >= 0; });
     var dueHtml = dueList2.length ? dueList2.map(function (u) {
       var m = QB.types[u.typeId];
       return '<span class="chip" style="--tc:' + m.color + '">' + esc(m.short) + '<i>' + esc(u.reason) + '</i></span>';
@@ -534,7 +532,7 @@
     var answered = a.submitted === true;   // 只有点过"提交答案"才算已作答
     var isSolve = q.kind === 'solve';      // 解答题/证明题
 
-    // 三个状态标记（按需求放在题目上方）
+    // 三个状态标记（放在"提交答案"按钮下面）
     var marksHtml = '<div class="mark-row">' + ['mastered', 'wobbly', 'not_mastered'].map(function (mk) {
       var m = MARK_META[mk];
       return '<button class="mark-btn ' + m.cls + (a.mark === mk ? ' active' : '') + '" data-mark="' + mk + '" data-qid="' + q.qid + '" title="' + esc(m.hint) + '">' +
@@ -550,7 +548,6 @@
       (isSolve ? '<span class="chip chip-solve">' + (q.form === 'proof' ? '证明题' : '解答题') + '</span>' : '') +
       (q.tech ? '<span class="chip chip-tech" title="本题考察的知识点">' + esc(q.tech) + '</span>' : '') +
       '<span class="chip chip-reason">' + esc(q.dueReason) + '</span></div>';
-    html += marksHtml;
     html += '<div class="qc-question">' + mathHtml(q.question, true) + '</div>';
 
     if (isSolve) {
@@ -563,6 +560,7 @@
         html += '<div class="solve-hint">📝 这是一道解答/证明题：请先在纸上独立完成，再点下面的按钮对照答案。</div>';
         html += '<div class="qc-actions"><button class="btn primary" data-solvedone data-qid="' + q.qid + '">✓ 已完成（查看答案与解析）</button></div>';
       }
+      html += marksHtml;
       html += '</div>';
       return html;
     }
@@ -582,6 +580,7 @@
           '<button class="btn primary" data-fillsubmit data-qid="' + q.qid + '">提交答案</button></div>';
         html += '<div class="fill-tip">💡 填空题直接输入答案（数字、分数、区间等），按回车或点按钮提交。</div>';
       }
+      html += marksHtml;
       html += '</div>';
       return html;
     }
@@ -607,6 +606,7 @@
     } else {
       html += '<div class="qc-actions"><button class="btn primary" data-submit data-qid="' + q.qid + '" ' + (a.chosen === undefined ? 'disabled' : '') + '>提交答案</button></div>';
     }
+    html += marksHtml;
     html += '</div>';
     return html;
   }
