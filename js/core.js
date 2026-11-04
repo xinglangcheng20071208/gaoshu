@@ -33,6 +33,22 @@
     return (x > 0 ? '+' : '-') + Math.abs(x);
   }
 
+  // 规范二次多项式字符串：ax²+bx+c（跳过 0 系数，±1 不写 1）
+  // 例：quadStr(1,0,-16) → 'x^2-16'；quadStr(2,3,0) → '2x^2+3x'；quadStr(1,-1,0) → 'x^2-x'
+  function quadStr(a, b, c) {
+    var s = '';
+    if (a !== 0) s += (a === 1 ? '' : a === -1 ? '-' : a) + 'x^2';
+    if (b !== 0) {
+      if (s === '') s += (b === 1 ? '' : b === -1 ? '-' : b) + 'x';
+      else s += (b > 0 ? '+' : '-') + (Math.abs(b) === 1 ? '' : Math.abs(b)) + 'x';
+    }
+    if (c !== 0) {
+      if (s === '') s += String(c);
+      else s += (c > 0 ? '+' : '-') + Math.abs(c);
+    }
+    return s === '' ? '0' : s;
+  }
+
   // 小数展示：四舍五入到 5 位小数并去掉尾部 0
   function num(x) {
     var s = Number(x.toFixed(5)).toString();
@@ -198,7 +214,7 @@
     generate: generate,
     buildOptions: buildOptions,
     sigOf: sigOf,
-    gcd: gcd, frac: frac, signed: signed, num: num,
+    gcd: gcd, frac: frac, signed: signed, num: num, quadStr: quadStr,
     ri: ri, pick: pick, mulberry32: mulberry32, uid: uid
   };
 });
