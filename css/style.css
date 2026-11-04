@@ -144,7 +144,7 @@ body {
 .mark-not { --tc: var(--no); }
 
 /* 题目上方的三个状态标记 */
-.mark-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.mark-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 0; }
 .mark-btn {
   flex: 1 1 0; min-width: 0;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -436,3 +436,13 @@ body[data-theme="dark"] .track-seg button.on { color: #a5b4fc; }
 .qc-fill-ans { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: var(--bg); display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
 .fa-label { font-size: 12.5px; color: var(--muted); }
 .fa-val { font-size: 17px; font-weight: 700; word-break: break-all; }
+
+/* ---------- 隐藏细小滚动条（避免竖滚动条箭头被误认为数学符号） ---------- */
+.tabs, .qc-question, .opt-body, .sol-m, .wc-q, .h-q {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.tabs::-webkit-scrollbar, .qc-question::-webkit-scrollbar, .opt-body::-webkit-scrollbar,
+.sol-m::-webkit-scrollbar, .wc-q::-webkit-scrollbar, .h-q::-webkit-scrollbar {
+  width: 0; height: 0; display: none;
+}
