@@ -1,10 +1,10 @@
-﻿/* ============================================================
+/* ============================================================
  * 题库扩充：22 个新模板（举一反三变式，答案程序化生成）
  * ============================================================ */
 (function (root) {
   'use strict';
   var QB = (typeof module !== 'undefined' && module.exports) ? require('./core.js') : root.QuestionBank;
-  var ri = QB.ri, frac = QB.frac, signed = QB.signed, bo = QB.buildOptions;
+  var ri = QB.ri, frac = QB.frac, signed = QB.signed, bo = QB.buildOptions, coefX = QB.coefX, xpow = QB.xpow, powStr = QB.powStr;
 
   function ok4(o) { return new Set(o).size === 4; }
 
@@ -212,7 +212,7 @@
     gen: function (rng) {
       var a = ri(2, 3, rng), n = ri(3, 4, rng);
       var correct = '\\frac{' + a + 'x^{' + (n + 1) + '}}{' + (n + 1) + '}+C';
-      var d = bo(correct, ['\\frac{x^{' + (n + 1) + '}}{' + (n + 1) + '}+C', '\\frac{' + a + 'x^{' + (n - 1) + '}}{' + (n - 1) + '}+C', a + '(' + (n + 1) + ')x^{' + (n + 1) + '}+C'], rng);
+      var d = bo(correct, ['\\frac{x^{' + (n + 1) + '}}{' + (n + 1) + '}+C', ((n - 1) === 1 ? coefX(a, 1) : '\\frac{' + a + 'x^{' + (n - 1) + '}}{' + (n - 1) + '}') + '+C', a + '(' + (n + 1) + ')x^{' + (n + 1) + '}+C'], rng);
       return {
         params: { a: a, n: n },
         question: '计算 $\\int ' + a + 'x^{' + n + '}\\,\\mathrm{d}x$',
