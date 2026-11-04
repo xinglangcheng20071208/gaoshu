@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
  * 题库扩充 ②：由网上经典例题拆分/归类而来（25 个新模板）
  * 每题带「技法标签」tech（有原题标签则沿用，无标签则按考点归类）
  * 答案全部由参数程序化生成
@@ -6,7 +6,7 @@
 (function (root) {
   'use strict';
   var QB = (typeof module !== 'undefined' && module.exports) ? require('./core.js') : root.QuestionBank;
-  var ri = QB.ri, frac = QB.frac, signed = QB.signed, bo = QB.buildOptions;
+  var ri = QB.ri, frac = QB.frac, signed = QB.signed, bo = QB.buildOptions, coefX = QB.coefX, xpow = QB.xpow, powStr = QB.powStr;
 
   function ok4(o) { return new Set(o).size === 4; }
 
@@ -57,9 +57,9 @@
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '分子在 $x=1$ 处为 0，说明它含因子 $x-1$：用公式 $x^n-1=(x-1)(x^{n-1}+x^{n-2}+\\cdots+1)$ 拆开约分。',
           steps: [
-            { m: 'x^{' + a + '}-1 = (x-1)(x^{' + (a - 1) + '}+x^{' + (a - 2) + '}+\\cdots+1)',
+            { m: 'x^{' + a + '}-1 = (x-1)(' + xpow(a - 1) + '+' + xpow(a - 2) + '+\\cdots+1)',
               t: '因式分解公式：$n$ 次方减 1 一定能提出 $(x-1)$。' },
-            { m: '\\frac{x^{' + a + '}-1}{x-1} = x^{' + (a - 1) + '}+\\cdots+1',
+            { m: '\\frac{x^{' + a + '}-1}{x-1} = ' + xpow(a - 1) + '+\\cdots+1',
               t: '约掉 $(x-1)$，剩下的括号里共有 ' + a + ' 个 1 次项。' },
             { m: 'x\\to 1 \\Rightarrow 1+1+\\cdots+1 = ' + a,
               t: '把 $x=1$ 代入，每一个 1 都等于 1，共 ' + a + ' 个，结果是 ' + a + '。' }
@@ -156,8 +156,8 @@
     id: 'derivative-D16', type: 'derivative', difficulty: 'medium', tech: '乘积法则',
     gen: function (rng) {
       var k = ri(2, 3, rng);
-      var correct = k + 'x^{' + (k - 1) + '}\\ln x+x^{' + (k - 1) + '}';
-      var d = bo(correct, [k + 'x^{' + (k - 1) + '}\\ln x', 'x^{' + (k - 1) + '}\\ln x', k + 'x^{' + (k - 1) + '}'], rng);
+      var correct = coefX(k, k - 1) + '\\ln x+' + xpow(k - 1);
+      var d = bo(correct, [coefX(k, k - 1) + '\\ln x', xpow(k - 1) + '\\ln x', coefX(k, k - 1)], rng);
       return {
         params: { k: k },
         question: '设 $y=x^{' + k + '}\\ln x$，求 $\\frac{\\mathrm{d}y}{\\mathrm{d}x}$',
@@ -166,12 +166,12 @@
         steps: [
           { m: '(x^{' + k + '})\\prime\\ln x + x^{' + k + '}(\\ln x)\\prime',
             t: '前导后不导，加前不导后导。' },
-          { m: '= ' + k + 'x^{' + (k - 1) + '}\\ln x + x^{' + k + '}\\cdot\\frac{1}{x}',
-            t: '$x^{' + k + '}$ 求导得 $' + k + 'x^{' + (k - 1) + '}$；$\\ln x$ 求导得 $\\frac{1}{x}$。' },
-          { m: '= ' + k + 'x^{' + (k - 1) + '}\\ln x + x^{' + (k - 1) + '}',
-            t: '第二项 $x^{' + k + '}\\cdot\\frac{1}{x}=x^{' + (k - 1) + '}$，合并。' }
+          { m: '= ' + coefX(k, k - 1) + '\\ln x + x^{' + k + '}\\cdot\\frac{1}{x}',
+            t: '$x^{' + k + '}$ 求导得 $' + coefX(k, k - 1) + '$；$\\ln x$ 求导得 $\\frac{1}{x}$。' },
+          { m: '= ' + coefX(k, k - 1) + '\\ln x + ' + xpow(k - 1),
+            t: '第二项 $x^{' + k + '}\\cdot\\frac{1}{x}=' + xpow(k - 1) + '$，合并。' }
         ],
-        pitfall: '$x^{' + k + '}\\cdot\\frac{1}{x}$ 是 $x^{' + (k - 1) + '}$，不是 $x^{' + (k + 1) + '}$。'
+        pitfall: '$x^{' + k + '}\\cdot\\frac{1}{x}$ 是 $' + xpow(k - 1) + '$，不是 $x^{' + (k + 1) + '}$。'
       };
     }
   });
