@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 高数刷题营 - Node 自测脚本
  * 1) 对全部模板大规模生成题目，用独立公式重算答案（验证正确率）
  * 2) 验证 4 个选项互不相同、正确答案在选项中
@@ -399,10 +399,11 @@ ts = S.afterShow(ts, d1);
 check(S.dueInfo(ts, d2).due === false, '未掌握连续2天后第3天不应再连续');
 check(S.dueInfo(ts, d3).due === true, '未掌握之后按2天节奏，第4天应到期');
 
-// 不熟练：2 天
+// 不熟练：1 天（次日再练）
 ts = S.applyMark({}, 'wobbly', D);
-check(S.dueInfo(ts, d1).due === false, '不熟练第2天不应到期');
-check(S.dueInfo(ts, d2).due === true, '不熟练第3天应到期（间隔2天）');
+check(S.dueInfo(ts, D).due === false, '不熟练当天不应立即重复');
+check(S.dueInfo(ts, d1).due === true, '不熟练第2天（间隔1天）应到期');
+check(S.dueInfo(ts, d1).reason.indexOf('1天') >= 0, '不熟练到期文案应写 1 天');
 
 // 已掌握：7 天
 ts = S.applyMark({}, 'mastered', D);
