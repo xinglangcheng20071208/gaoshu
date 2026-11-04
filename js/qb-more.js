@@ -409,7 +409,7 @@
     gen: function (rng) {
       var a = ri(1, 2, rng);
       var correct = '(-' + a + ',' + a + ')';
-      var d = bo(correct, ['(-\\infty,-' + a + ')', '(' + a + ',+\\infty)', '\\mathbb{R}'], rng);
+      var d = bo(correct, ['(-\\infty,-' + a + ')', '(' + a + ',+\\infty)', '全体实数'], rng);
       return {
         params: { a: a },
         question: '函数 $f(x)=x^3-' + (3 * a * a) + 'x$ 的单调递减区间是',
