@@ -35,6 +35,15 @@ function frac(n, d) {
 function num(x) { return Number(x.toFixed(5)).toString(); }
 function signed(x) { if (x === 0) return ''; return (x > 0 ? '+' : '-') + Math.abs(x); }
 function sb(s, x) { return s + signed(x); } // 带符号拼接
+// 幂次显示（与 core.js 的 xpow / coefX 对齐）：x^1 写成 x
+function xpow(n) { return n === 0 ? '' : n === 1 ? 'x' : 'x^{' + n + '}'; }
+function coefX(c, n) {
+  const p = xpow(n);
+  if (!p) return String(c);
+  if (c === 1) return p;
+  if (c === -1) return '-' + p;
+  return String(c) + p;
+}
 
 /* ---------- 每个模板的独立答案验证器 ---------- */
 const V = {
@@ -152,7 +161,7 @@ const V = {
   'limit-L20': q => frac(q.params.a, 2),
   'limit-L21': () => '不存在',
   'limit-L22': () => '-\\frac{1}{6}',
-  'derivative-D16': q => q.params.k + 'x^{' + (q.params.k - 1) + '}\\ln x+x^{' + (q.params.k - 1) + '}',
+  'derivative-D16': q => coefX(q.params.k, q.params.k - 1) + '\\ln x+' + xpow(q.params.k - 1),
   'derivative-D17': q => 'y=' + (2 * q.params.a) + 'x-' + (q.params.a * q.params.a),
   'derivative-D18': () => '-1',
   'derivative-D19': () => '\\sin 2x',
