@@ -1,10 +1,10 @@
-/* ============================================================
+﻿/* ============================================================
  * 复习调度器（纯逻辑，可注入日期，方便 Node 自测）
  * 规则：
  *   已掌握 mastered   → 7 天后再次出现类似题目
- *   不熟练 wobbly     → 2 天后再次出现类似题目
+ *   不熟练 wobbly     → 1 天后再次出现类似题目
  *   未掌握 not_mastered → 连续 2 天出现（标记当天算第 1 天，次日第 2 天），
- *                          之后按"不熟练"节奏（每 2 天）继续巩固
+ *                          之后每 2 天间隔巩固
  * ============================================================ */
 (function (root, factory) {
   if (typeof module !== 'undefined' && module.exports) { module.exports = factory(require('./core.js')); }
@@ -38,7 +38,7 @@
       return { due: false, pri: 0 };
     }
     if (typeState.status === 'wobbly') {
-      if (days >= 2) return { due: true, pri: 2, reason: '不熟练·2天后再练' };
+      if (days >= 1) return { due: true, pri: 2, reason: '不熟练·1天后再练' };
       return { due: false, pri: 0 };
     }
     // mastered
@@ -207,7 +207,7 @@
       return { date: addDays(typeState.lastShown, 7), reason: '已掌握·7天后再练' };
     }
     if (typeState.status === 'wobbly') {
-      return { date: addDays(typeState.lastShown, 2), reason: '不熟练·2天后再练' };
+      return { date: addDays(typeState.lastShown, 1), reason: '不熟练·1天后再练' };
     }
     var nm = typeState.nmDays || 0;
     if (nm < 2) return { date: addDays(typeState.lastShown, 1), reason: '未掌握·连续巩固' };
