@@ -1,10 +1,10 @@
-/* ============================================================
+﻿/* ============================================================
  * 题库：不定积分（12 个模板）+ 定积分（10 个模板）
  * ============================================================ */
 (function (root) {
   'use strict';
   var QB = (typeof module !== 'undefined' && module.exports) ? require('./core.js') : root.QuestionBank;
-  var ri = QB.ri, frac = QB.frac, signed = QB.signed, bo = QB.buildOptions;
+  var ri = QB.ri, frac = QB.frac, signed = QB.signed, bo = QB.buildOptions, coefX = QB.coefX, xpow = QB.xpow, powStr = QB.powStr;
 
   function ok4(o) { return new Set(o).size === 4; }
 
@@ -16,7 +16,7 @@
     gen: function (rng) {
       var n = ri(3, 6, rng);
       var correct = '\\frac{x^{' + (n + 1) + '}}{' + (n + 1) + '}+C';
-      var d = bo(correct, [n + 'x^{' + (n - 1) + '}+C', '\\frac{x^{' + (n + 1) + '}}{' + n + '}+C', (n + 1) + 'x^{' + (n + 1) + '}+C'], rng);
+      var d = bo(correct, [coefX(n, n - 1) + '+C', '\\frac{x^{' + (n + 1) + '}}{' + n + '}+C', (n + 1) + 'x^{' + (n + 1) + '}+C'], rng);
       return {
         params: { n: n },
         question: '计算 $\\int x^{' + n + '}\\,\\mathrm{d}x$',
