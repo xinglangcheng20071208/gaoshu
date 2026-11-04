@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -48,6 +48,15 @@ document.addEventListener('DOMContentLoaded', function () {
 setTimeout(finish, 20000);
 function run() {
   try {
+    // 若首题不是选择题，先切到一道选择题（每日套题可能是填空/解答题）
+    if (!document.querySelector('.opt')) {
+      var st0 = window.__appDebug.state();
+      var k0 = Object.keys(st0.daily)[0];
+      var qs0 = (st0.daily[k0] && st0.daily[k0].questions) || [];
+      var ci0 = -1;
+      qs0.forEach(function (q, i) { if (ci0 < 0 && q.kind === 'choice') ci0 = i; });
+      if (ci0 > 0) { click(document.querySelector('.dot[data-go="' + ci0 + '"]')); return setTimeout(run, 250); }
+    }
     var vw = window.innerWidth;
     var docW = document.documentElement.scrollWidth;
     log('viewport-width', true, vw + 'px');
