@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
  * 题库：极限与连续（13 个模板，答案全部由参数程序化生成）
  * 每道题：question(题目) / options(4选1) / answer(正确答案)
  *        / idea(思路) / steps(分步过程，含大白话解释) / pitfall(易错点)
@@ -6,9 +6,15 @@
 (function (root) {
   'use strict';
   var QB = (typeof module !== 'undefined' && module.exports) ? require('./core.js') : root.QuestionBank;
-  var ri = QB.ri, frac = QB.frac, signed = QB.signed, bo = QB.buildOptions;
+  var ri = QB.ri, frac = QB.frac, signed = QB.signed, quadStr = QB.quadStr, bo = QB.buildOptions;
 
   function ok4(o) { return new Set(o).size === 4; }
+
+  // 分子分母同除 x^pow 后的项：3 → '+3/x'，-2 → '-2/x'，0 → ''
+  function divTerm(coef, pow) {
+    if (coef === 0) return '';
+    return (coef > 0 ? '+' : '-') + Math.abs(coef) + (pow === 1 ? '/x' : '/x^2');
+  }
 
   /* L1 基础：因式分解约分求极限 */
   QB.register({
@@ -23,11 +29,11 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a, b: b },
-          question: '\\lim\\limits_{x\\to ' + a + '}\\frac{x^2' + signed(p) + 'x' + signed(q) + '}{x' + signed(-a) + '}',
+          question: '\\lim\\limits_{x\\to ' + a + '}\\frac{' + quadStr(1, p, q) + '}{x' + signed(-a) + '}',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '看到 $\\frac{0}{0}$ 型别慌：先把分子因式分解，分子分母同时约掉相同的因式，再代入就出结果。',
           steps: [
-            { m: 'x^2' + signed(p) + 'x' + signed(q) + ' = (x' + signed(-a) + ')(x' + signed(-b) + ')',
+            { m: quadStr(1, p, q) + ' = (x' + signed(-a) + ')(x' + signed(-b) + ')',
               t: '先看分子。常数项 ' + q + ' 正好可以拆成 (' + a + ') × (' + b + ')，所以分子能写成两个括号相乘。' },
             { m: '\\frac{(x' + signed(-a) + ')(x' + signed(-b) + ')}{x' + signed(-a) + '} = x' + signed(-b),
               t: '分子分母里都有 $x' + signed(-a) + '$，约掉。注意：$x$ 只是"趋近" ' + a + '，并不是等于 ' + a + '，所以可以放心约。' },
@@ -52,11 +58,11 @@
         if (!ok4(d.options)) continue;
         return {
           params: { a: a, b: b, c: c, d: d0 },
-          question: '\\lim\\limits_{x\\to ' + c + '}\\left(' + (a === 1 ? '' : a) + 'x^2' + signed(b) + 'x' + signed(d0) + '\\right)',
+          question: '\\lim\\limits_{x\\to ' + c + '}\\left(' + quadStr(a, b, d0) + '\\right)',
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '多项式在定义域内处处连续，求极限最简单：直接把 $x$ 的值代进去。',
           steps: [
-            { m: '\\lim\\limits_{x\\to ' + c + '}\\left(' + (a === 1 ? '' : a) + 'x^2' + signed(b) + 'x' + signed(d0) + '\\right) = ' + a + '\\cdot ' + c + '^2' + signed(b * c) + signed(d0),
+            { m: '\\lim\\limits_{x\\to ' + c + '}\\left(' + quadStr(a, b, d0) + '\\right) = ' + a + '\\cdot ' + c + '^2' + signed(b * c) + signed(d0),
               t: '把 $x=' + c + '$ 逐项代入：$' + (a === 1 ? '' : a) + '\\times ' + c + '^2$，再加上 $' + b + '\\times ' + c + '$ 和常数 ' + d0 + '。' },
             { m: '= ' + (a * c * c) + signed(b * c) + signed(d0) + ' = ' + correct,
               t: '按先乘方、再乘除、最后加减的顺序算出来。' }
@@ -296,7 +302,7 @@
           options: d.options, answerIndex: d.answerIndex, answer: d.answer,
           idea: '$x\\to\\infty$ 的多项式之比，分子分母同时除以最高次项 $x^2$，其余项都趋于 0，只剩最高次系数之比。',
           steps: [
-            { m: '\\frac{' + a + '+' + b + '/x+' + c0 + '/x^2}{' + dd + '+' + e + '/x}',
+            { m: '\\frac{' + a + divTerm(b, 1) + divTerm(c0, 2) + '}{' + dd + divTerm(e, 1) + '}',
               t: '分子分母同时除以 $x^2$（最高次），每一项都降次。' },
             { m: '\\frac{1}{x}\\to 0,\\quad \\frac{1}{x^2}\\to 0',
               t: '当 $x$ 无穷大时，$\\frac{1}{x}$、$\\frac{1}{x^2}$ 都趋近 0，全部扔掉。' },
