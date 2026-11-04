@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 高数刷题营 - 核心模块（题库注册表 + 数学工具）
  * UMD：浏览器挂到 window.QuestionBank，Node 里 require 使用
  * ============================================================ */
@@ -31,6 +31,27 @@
   function signed(x) {
     if (x === 0) return '';
     return (x > 0 ? '+' : '-') + Math.abs(x);
+  }
+
+  // x 的幂：xpow(1) → 'x'，xpow(2) → 'x^{2}'，xpow(0) → ''
+  function xpow(n) {
+    if (n === 0) return '';
+    if (n === 1) return 'x';
+    return 'x^{' + n + '}';
+  }
+  // 系数×x 的幂：coefX(2,1) → '2x'，coefX(1,2) → 'x^{2}'，coefX(-1,3) → '-x^{3}'
+  function coefX(c, n) {
+    var p = xpow(n);
+    if (!p) return String(c);
+    if (c === 1) return p;
+    if (c === -1) return '-' + p;
+    return String(c) + p;
+  }
+  // 底数的幂：powStr('a', 1) → 'a'，powStr('a', 2) → 'a^{2}'
+  function powStr(base, n) {
+    if (n === 0) return '1';
+    if (n === 1) return base;
+    return base + '^{' + n + '}';
   }
 
   // 规范二次多项式字符串：ax²+bx+c（跳过 0 系数，±1 不写 1）
@@ -214,7 +235,7 @@
     generate: generate,
     buildOptions: buildOptions,
     sigOf: sigOf,
-    gcd: gcd, frac: frac, signed: signed, num: num, quadStr: quadStr,
+    gcd: gcd, frac: frac, signed: signed, num: num, quadStr: quadStr, xpow: xpow, coefX: coefX, powStr: powStr,
     ri: ri, pick: pick, mulberry32: mulberry32, uid: uid
   };
 });
