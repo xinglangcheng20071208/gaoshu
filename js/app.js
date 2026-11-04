@@ -50,6 +50,20 @@
     return esc(s);
   }
 
+  // 题干里 $...$ 公式的段数
+  function mathSegCount(s) {
+    var parts = String(s == null ? '' : s).split('$');
+    return Math.floor(parts.length / 2);
+  }
+  // 题干排版：
+  //   只有一段公式（或纯公式）→ 居中放大（适合"$\int ...$"这类）
+  //   多段公式夹着文字   → 按句子内联排版、自动换行（适合"利用 $...$，估算 $...$"）
+  function questionBlock(text) {
+    var inline = mathSegCount(text) >= 2;
+    var inner = mathHtml(text, !inline).replace(/\n/g, '<br>');
+    return '<div class="qc-question' + (inline ? ' q-inline' : '') + '">' + inner + '</div>';
+  }
+
   // 渲染页面中所有 .mtex（KaTeX 优先，失败用简易渲染器）
   function renderMathIn(root) {
     $$('.mtex', root || document).forEach(function (n) {
@@ -548,7 +562,7 @@
       (isSolve ? '<span class="chip chip-solve">' + (q.form === 'proof' ? '证明题' : '解答题') + '</span>' : '') +
       (q.tech ? '<span class="chip chip-tech" title="本题考察的知识点">' + esc(q.tech) + '</span>' : '') +
       '<span class="chip chip-reason">' + esc(q.dueReason) + '</span></div>';
-    html += '<div class="qc-question">' + mathHtml(q.question, true) + '</div>';
+    html += questionBlock(q.question);
 
     if (isSolve) {
       // 解答题/证明题：不给选项，只给「已完成」按钮
@@ -768,7 +782,8 @@
           typeBadge(e.typeId) + diffBadge(e.difficulty) + markBadge(e.mark) +
           (e.corrected ? '<span class="tag mark-corrected">✅ 已订正</span>' : '') +
           '<span class="wc-date">' + e.date + '</span></div>' +
-          '<div class="wc-q">' + mathHtml(e.question, true) + '</div>' +
+          '<div class="wc-q' + (mathSegCount(e.question) >= 2 ? ' q-inline' : '') + '">' +
+          mathHtml(e.question, mathSegCount(e.question) < 2).replace(/\n/g, '<br>') + '</div>' +
           '<div class="wc-a">答案：' + mathHtml(e.answer, true) + '</div>' +
           (isOpen ?
             '<div class="wc-sol"><div class="sol-idea">' + mathHtml(e.idea, false) + '</div>' +
