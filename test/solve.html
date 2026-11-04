@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -95,11 +95,23 @@ function run() {
         step(function () {
           click(document.querySelector('[data-submit]'));
           step(function () {
-            log('summary-shown', !!document.querySelector('.summary'));
-            var sumTxt = document.querySelector('.summary') ? document.querySelector('.summary').textContent : '';
-            log('summary-solve-count', sumTxt.indexOf('已完成 1/1') >= 0 || /已完成\s*1\s*\/\s*1/.test(sumTxt));
-            log('summary-choice-score', /1\s*\/\s*1 客观题正确率 100%/.test(sumTxt));
-            finish();
+            // 最后一题提交后：先展示解析（不自动结算），需手动点「查看结算」
+            log('no-auto-summary', !document.querySelector('.summary'));
+            log('last-solution-visible', !!document.querySelector('.qc-solution'));
+            log('settle-btn-shown', !!document.querySelector('[data-settle]'));
+            click(document.querySelector('[data-settle]'));
+            step(function () {
+              log('summary-shown', !!document.querySelector('.summary'));
+              var sumTxt = document.querySelector('.summary') ? document.querySelector('.summary').textContent : '';
+              log('summary-solve-count', sumTxt.indexOf('已完成 1/1') >= 0 || /已完成\s*1\s*\/\s*1/.test(sumTxt));
+              log('summary-choice-score', /1\s*\/\s*1 客观题正确率 100%/.test(sumTxt));
+              // 结算页可以返回再看解析
+              click(document.querySelector('[data-backsettle]'));
+              step(function () {
+                log('back-to-solution', !!document.querySelector('.qc-solution') && !document.querySelector('.summary'));
+                finish();
+              }, 200);
+            }, 200);
           }, 200);
         }, 200);
       }, 200);
