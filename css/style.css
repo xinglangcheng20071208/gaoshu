@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 高数刷题营 - 样式（响应式 · 深色模式）
  * ============================================================ */
 :root {
@@ -165,6 +165,13 @@ body {
   overflow-x: auto; background: var(--bg);
 }
 .qc-question .mtex-d { font-size: 20px; }
+/* 多段公式夹文字的题干：按句子排版、左对齐、自动换行 */
+.qc-question.q-inline {
+  text-align: left; font-size: 16.5px; line-height: 1.95; padding: 14px 14px;
+  white-space: normal; word-break: break-word;
+}
+.qc-question.q-inline .mtex { font-size: 1.06em; }
+.wc-q.q-inline { text-align: left; line-height: 1.9; }
 
 /* 选项 */
 .qc-options { display: flex; flex-direction: column; gap: 8px; }
