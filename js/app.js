@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 高数刷题营 - 主应用（UI 与交互）
  * ============================================================ */
 (function () {
@@ -17,7 +17,7 @@
 
   var MARK_META = {
     mastered:     { name: '已掌握', icon: '✓', cls: 'mark-mastered', hint: '7 天后出类似题目', pri: 1 },
-    wobbly:       { name: '不熟练', icon: '△', cls: 'mark-wobbly',   hint: '2 天后出类似题目', pri: 2 },
+    wobbly:       { name: '不熟练', icon: '△', cls: 'mark-wobbly',   hint: '1 天后出类似题目', pri: 2 },
     not_mastered: { name: '未掌握', icon: '✗', cls: 'mark-not',      hint: '连续 2 天出类似题目', pri: 3 }
   };
 
@@ -493,7 +493,7 @@
     html += '<p class="sum-msg">' + msg + '</p>';
     html += '<div class="sum-marks">' +
       '<span class="tag mark-mastered">✓ 已掌握 ×' + marks.mastered + ' <i>7 天后见</i></span>' +
-      '<span class="tag mark-wobbly">△ 不熟练 ×' + marks.wobbly + ' <i>2 天后见</i></span>' +
+      '<span class="tag mark-wobbly">△ 不熟练 ×' + marks.wobbly + ' <i>1 天后见</i></span>' +
       '<span class="tag mark-not">✗ 未掌握 ×' + marks.not_mastered + ' <i>明天继续</i></span>' +
       '</div>';
     html += '<div class="sum-list">' + d.questions.map(function (q) {
@@ -908,7 +908,7 @@
     var html = '<div class="mas-head card"><div class="ts-title">🧭 掌握度总览（' + esc(semName) + '）</div>' +
       '<div class="mas-rules"><b>复习节奏：</b>' +
       '<span class="tag mark-mastered">已掌握 → 7 天后出类似题</span>' +
-      '<span class="tag mark-wobbly">不熟练 → 2 天后出类似题</span>' +
+      '<span class="tag mark-wobbly">不熟练 → 1 天后出类似题</span>' +
       '<span class="tag mark-not">未掌握 → 连续 2 天出类似题</span>' +
       '</div></div>';
 
