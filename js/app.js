@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
  * 高数刷题营 - 主应用（UI 与交互）
  * ============================================================ */
 (function () {
@@ -452,11 +452,11 @@
     }
     html += '</div>';
 
-    if (allDone) {
+    if (allDone && d.showSummary) {
       html += renderSummary(d, { title: '🎉 今日练习完成' });
     } else {
       html += renderQuestionCard(d, curIdx);
-      html += renderNav(d, curIdx);
+      html += renderNav(d, curIdx, allDone);
     }
     $('#app').innerHTML = html;
     renderMathIn($('#app'));
@@ -522,7 +522,10 @@
         (a.mark ? '<span class="sum-mark">' + esc(MARK_META[a.mark].name) + '</span>' : '') +
         '</div>';
     }).join('') + '</div>';
-    html += '<div class="sum-btns">' + (opts.extraBtns || '') + '<button class="btn" data-view-go="wrong">打开错题本</button><button class="btn ghost" data-view-go="records">查看学习记录</button></div>';
+    html += '<div class="sum-btns">' + (opts.extraBtns || '') +
+      '<button class="btn ghost" data-backsettle>↩ 再看解析</button>' +
+      '<button class="btn" data-view-go="wrong">打开错题本</button>' +
+      '<button class="btn ghost" data-view-go="records">查看学习记录</button></div>';
     html += '</div>';
     return html;
   }
@@ -625,7 +628,11 @@
     return html;
   }
 
-  function renderNav(d, idx) {
+  function renderNav(d, idx, allDone) {
+    var settleRow = allDone
+      ? '<div class="qnav-settle"><button class="btn primary" data-settle>🎉 全部完成 · 查看结算</button>' +
+        '<span class="qnav-settle-tip">先看解析，确认无误再结算</span></div>'
+      : '';
     return '<div class="qnav">' +
       '<button class="btn ghost" data-prev ' + (idx === 0 ? 'disabled' : '') + '>← 上一题</button>' +
       '<div class="dots">' + d.questions.map(function (q, i) {
@@ -636,7 +643,7 @@
         return '<button class="' + cls + '" data-go="' + i + '">' + (i + 1) + '</button>';
       }).join('') + '</div>' +
       '<button class="btn ghost" data-next ' + (idx === d.questions.length - 1 ? 'disabled' : '') + '>下一题 →</button>' +
-      '</div>';
+      '</div>' + settleRow;
   }
 
   /* ---------- 专项练习 ---------- */
@@ -670,14 +677,14 @@
       '<span class="chip" style="--tc:' + CUSTOM_DIFFS[s.difficulty].color + '">' + esc(diffLabel) + '</span></div></div>';
     html += '</div>';
 
-    if (allDone) {
+    if (allDone && set.showSummary) {
       html += renderSummary(set, {
         title: '🎯 专项练习完成',
         extraBtns: '<button class="btn ghost" data-crestart>再来一套</button>'
       });
     } else {
       html += renderQuestionCard(set, customIdx);
-      html += renderNav(set, customIdx);
+      html += renderNav(set, customIdx, allDone);
     }
     $('#app').innerHTML = html;
     renderMathIn($('#app'));
@@ -824,14 +831,14 @@
       '<span class="chip" style="--tc:#6366f1">同题型 · 换数字 · 非原题</span></div></div>';
     html += '</div>';
 
-    if (allDone) {
+    if (allDone && set.showSummary) {
       html += renderSummary(set, {
         title: '🔄 错题重做完成',
         extraBtns: '<button class="btn ghost" data-redoexit>返回错题本</button>'
       });
     } else {
       html += renderQuestionCard(set, redoIdx);
-      html += renderNav(set, redoIdx);
+      html += renderNav(set, redoIdx, allDone);
     }
     $('#app').innerHTML = html;
     renderMathIn($('#app'));
@@ -1241,6 +1248,25 @@
       }
       var go = t.closest('[data-go]');
       if (go) { setCurIndex(parseInt(go.getAttribute('data-go'), 10)); renderCurrentPractice(); return; }
+
+      // 查看结算（全部做完后手动进入）
+      var settle = t.closest('[data-settle]');
+      if (settle) {
+        var dSt = curContainer();
+        dSt.showSummary = true;
+        save();
+        renderCurrentPractice();
+        return;
+      }
+      // 结算页返回：再看一遍最后一题解析
+      var backSettle = t.closest('[data-backsettle]');
+      if (backSettle) {
+        var dB = curContainer();
+        dB.showSummary = false;
+        save();
+        renderCurrentPractice();
+        return;
+      }
 
       // 视图跳转按钮
       var vgo = t.closest('[data-view-go]');
