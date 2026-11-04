@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
  * 北京高考数学题库
  * 按北京卷「卷面题型」分类：选择题（gkChoice）/ 填空题（gkFill）/ 解答题（gkSolve）
  * 每题带知识模块标签（tech），覆盖：集合、复数、函数与导数、三角函数、
@@ -7,7 +7,7 @@
 (function (root) {
   'use strict';
   var QB = (typeof module !== 'undefined' && module.exports) ? require('./core.js') : root.QuestionBank;
-  var ri = QB.ri, frac = QB.frac, signed = QB.signed, bo = QB.buildOptions;
+  var ri = QB.ri, frac = QB.frac, signed = QB.signed, bo = QB.buildOptions, coefX = QB.coefX, xpow = QB.xpow, powStr = QB.powStr;
 
   function ok4(o) { return new Set(o).size === 4; }
   function C(n, k) {
@@ -162,7 +162,7 @@
         options: d.options, answerIndex: d.answerIndex, answer: d.answer,
         idea: '切线：先求导得到斜率 $k=f\\prime(' + a + ')$，再用点斜式 $y-y_0=k(x-a)$。',
         steps: [
-          { m: 'y\\prime=' + n + 'x^{' + (n - 1) + '} \\Rightarrow k=' + n + '\\times' + a + '^{' + (n - 1) + '}=' + slope,
+          { m: 'y\\prime=' + coefX(n, n - 1) + ' \\Rightarrow k=' + n + '\\times' + powStr(String(a), n - 1) + '=' + slope,
             t: '求导后代点得斜率。' },
           { m: 'y-' + y0 + '=' + slope + '(x-' + a + ')',
             t: '点斜式。' },
