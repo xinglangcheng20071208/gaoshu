@@ -30,58 +30,26 @@
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 
-  // 把含 $...$ 或纯 LaTeX 的字符串转成带 data-tex 的 HTML
+  // 公式渲染统一交给 MathRender（KaTeX 优先 / 兜底 / 缓存，见 js/math-renderer.js）
+  var MR = window.MathRender || null;
   function mathHtml(s, display) {
-    s = String(s == null ? '' : s);
-    if (s.indexOf('$') >= 0) {
-      var parts = s.split('$'), out = '';
-      for (var i = 0; i < parts.length; i++) {
-        if (i % 2 === 1) {
-          out += '<span class="mtex' + (display ? ' mtex-d' : '') + '" data-tex="' + esc(parts[i]) + '">' + esc(parts[i]) + '</span>';
-        } else {
-          out += esc(parts[i]);
-        }
-      }
-      return out;
-    }
-    if (/[\\^_{]/.test(s)) {
-      return '<span class="mtex' + (display ? ' mtex-d' : '') + '" data-tex="' + esc(s) + '">' + esc(s) + '</span>';
-    }
-    return esc(s);
+    if (MR) return MR.mathHtml(s, display);
+    // 极端兜底（MathRender 未加载时）
+    var t = String(s == null ? '' : s);
+    if (/[\\^_{$]/.test(t)) return '<span class="mtex' + (display ? ' mtex-d' : '') + '" data-tex="' + esc(t.replace(/\$/g, '')) + '">' + esc(t) + '</span>';
+    return esc(t);
   }
-
-  // 题干里 $...$ 公式的段数
   function mathSegCount(s) {
-    var parts = String(s == null ? '' : s).split('$');
-    return Math.floor(parts.length / 2);
+    if (MR) return MR.segCount(s);
+    return Math.floor(String(s == null ? '' : s).split('$').length / 2);
   }
-  // 题干排版：
-  //   只有一段公式（或纯公式）→ 居中放大（适合"$\int ...$"这类）
-  //   多段公式夹着文字   → 按句子内联排版、自动换行（适合"利用 $...$，估算 $...$"）
   function questionBlock(text) {
+    if (MR) return MR.questionBlock(text);
     var inline = mathSegCount(text) >= 2;
-    var inner = mathHtml(text, !inline).replace(/\n/g, '<br>');
-    return '<div class="qc-question' + (inline ? ' q-inline' : '') + '">' + inner + '</div>';
+    return '<div class="qc-question' + (inline ? ' q-inline' : '') + '">' + mathHtml(text, !inline).replace(/\n/g, '<br>') + '</div>';
   }
-
-  // 渲染页面中所有 .mtex（KaTeX 优先，失败用简易渲染器）
   function renderMathIn(root) {
-    $$('.mtex', root || document).forEach(function (n) {
-      var tex = n.getAttribute('data-tex') || n.textContent;
-      if (window.katex) {
-        if (n.dataset.rendered === 'katex') return;
-        try {
-          katex.render(tex, n, {
-            throwOnError: false, strict: false,
-            displayMode: n.classList.contains('mtex-d')
-          });
-          n.dataset.rendered = 'katex';
-        } catch (e) { n.textContent = tex; }
-      } else if (window.simpleTeX) {
-        if (n.dataset.rendered === 'fb') return;
-        try { simpleTeX.render(n); n.dataset.rendered = 'fb'; } catch (e) { }
-      }
-    });
+    if (MR) return MR.render(root);
   }
 
   function typeBadge(t, extra) {
@@ -230,7 +198,7 @@
       form: q.form || 'choice',
       question: q.question, options: q.options, answerIndex: q.answerIndex,
       answer: q.answer, idea: q.idea, steps: q.steps, pitfall: q.pitfall,
-      mark: mark, sig: q.sig, tpl: q.tpl
+      mark: mark, sig: q.sig, tpl: q.tpl, params: q.params || null
     });
   }
 
@@ -435,19 +403,27 @@
       return '<button class="seg' + (on ? ' active' : '') + '" data-dform="' + f + '" style="--tc:' + m.color + '">' + m.name + '</button>';
     }).join('');
 
+    var quickChips = semTypes.map(function (t) {
+      var m = QB.types[t];
+      return '<button class="seg" data-quick="' + t + '" style="--tc:' + m.color + '" title="一键练本' + (isGk() ? '题型' : '章') + ' 10 题">' + esc(m.short) + '</button>';
+    }).join('');
+
     var html = '';
+    html += renderOnboard();
     html += '<div class="daily-meta card">';
     html += '<div class="dm-row1"><span class="dm-date">📅 ' + today + '</span><div class="dm-diff">难度：<span class="segs">' + diffs + '</span></div></div>';
     html += '<div class="dm-row2"><span class="dm-prog">今日进度 <b>' + answered + '</b>/' + d.questions.length + '</span><div class="pbar"><div class="pbar-in" style="width:' + Math.round(answered / d.questions.length * 100) + '%"></div></div></div>';
     if (isGk()) {
       html += '<div class="dm-row3"><span class="dm-plan">卷面题型</span><div class="dm-chips">' + typeChips +
         '<button class="seg' + (sel.length === 0 ? ' active' : '') + '" data-dtype="" style="--tc:var(--muted)">全部</button></div></div>';
+      html += '<div class="dm-row3"><span class="dm-plan">跟课刷题</span><div class="dm-chips">' + quickChips + '</div></div>';
       html += '<div class="dm-row3"><span class="dm-plan">今日复习计划</span><div class="dm-chips">' + dueHtml + '</div></div>';
     } else {
       html += '<div class="dm-row3"><span class="dm-plan">学期</span><div class="dm-chips">' + semChips + '</div></div>';
       html += '<div class="dm-row3"><span class="dm-plan">自选题型</span><div class="dm-chips">' + typeChips +
         '<button class="seg' + (sel.length === 0 ? ' active' : '') + '" data-dtype="" style="--tc:var(--muted)">全部</button></div></div>';
       html += '<div class="dm-row3"><span class="dm-plan">题型形式</span><div class="dm-chips">' + formChips + '</div></div>';
+      html += '<div class="dm-row3"><span class="dm-plan">跟课刷题</span><div class="dm-chips">' + quickChips + '</div></div>';
       html += '<div class="dm-row3"><span class="dm-plan">今日复习计划</span><div class="dm-chips">' + dueHtml + '</div></div>';
     }
     html += '</div>';
@@ -525,8 +501,14 @@
     html += '<div class="sum-btns">' + (opts.extraBtns || '') +
       '<button class="btn ghost" data-backsettle>↩ 再看解析</button>' +
       '<button class="btn" data-view-go="wrong">打开错题本</button>' +
-      '<button class="btn ghost" data-view-go="records">查看学习记录</button></div>';
+      '<button class="btn ghost" data-view-go="records">查看学习记录</button>' +
+      '<button class="btn ghost" data-poster>🖼️ 生成分享海报</button>' +
+      '<button class="btn ghost" data-copy-share>📄 复制分享文案</button></div>';
     html += '</div>';
+    // 完成庆祝：只有结算页触发
+    setTimeout(function () {
+      if (window.Share && window.__confetti) window.__confetti();
+    }, 60);
     return html;
   }
 
@@ -566,6 +548,11 @@
       (q.tech ? '<span class="chip chip-tech" title="本题考察的知识点">' + esc(q.tech) + '</span>' : '') +
       '<span class="chip chip-reason">' + esc(q.dueReason) + '</span></div>';
     html += questionBlock(q.question);
+    // 错题重做的变式题：标出与原题的数字差异
+    if (q.originParams) {
+      var diffTxt = paramDiff(q.originParams, q.params);
+      html += '<div class="variant-diff">🔀 变式题（同题型换数字）：' + (diffTxt ? '<b>' + esc(diffTxt) + '</b>' : '数字有变化，解法相同') + '</div>';
+    }
 
     if (isSolve) {
       // 解答题/证明题：不给选项，只给「已完成」按钮
@@ -844,6 +831,185 @@
     renderMathIn($('#app'));
   }
 
+  /* ---------- 通用小工具：轻提示 ---------- */
+  function toast(msg) {
+    var t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('out'); }, 1600);
+    setTimeout(function () { t.remove(); }, 2000);
+  }
+
+  /* ---------- 导入备份 ---------- */
+  function doImport(text) {
+    if (!window.Backup) return;
+    var r = window.Backup.parseImport(text);
+    if (!r.ok) { toast('导入失败：' + r.error); return; }
+    if (window.Backup.importState(r.state, 'merge')) {
+      state = Store.load();
+      save();
+      render();
+      toast('已导入并合并数据');
+    } else {
+      toast('导入失败：浏览器存储空间不足');
+    }
+  }
+
+  /* ---------- 完成庆祝彩带 ---------- */
+  window.__confetti = function () {
+    try {
+      var old = document.querySelector('.confetti-layer');
+      if (old) old.remove();
+      var c = document.createElement('canvas');
+      c.className = 'confetti-layer';
+      c.width = window.innerWidth; c.height = window.innerHeight;
+      document.body.appendChild(c);
+      var ctx = c.getContext('2d');
+      var colors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
+      var parts = [];
+      for (var i = 0; i < 80; i++) {
+        parts.push({
+          x: c.width / 2 + (Math.random() - 0.5) * 240, y: c.height * 0.32,
+          vx: (Math.random() - 0.5) * 9, vy: -Math.random() * 9 - 2.5,
+          s: 4 + Math.random() * 5, r: Math.random() * Math.PI,
+          vr: (Math.random() - 0.5) * 0.3, life: 110, color: colors[i % colors.length]
+        });
+      }
+      var frame = 0;
+      (function loop() {
+        frame++;
+        ctx.clearRect(0, 0, c.width, c.height);
+        parts.forEach(function (p) {
+          p.vy += 0.28; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life--;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+          ctx.globalAlpha = Math.max(0, p.life / 110);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.62);
+          ctx.restore();
+        });
+        if (frame < 120) requestAnimationFrame(loop); else c.remove();
+      })();
+    } catch (e) { /* ignore */ }
+  };
+
+  /* ---------- 学习数据可视化 ---------- */
+  function renderStatsCard() {
+    var st = window.Share ? window.Share.computeStats(state) : null;
+    if (!st) return '';
+    var dayCount = {};
+    state.history.forEach(function (h) { if (h.date) dayCount[h.date] = (dayCount[h.date] || 0) + 1; });
+    var cells = '';
+    for (var i = 29; i >= 0; i--) {
+      var d = new Date(); d.setDate(d.getDate() - i);
+      var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      var n = dayCount[key] || 0;
+      var lv = n === 0 ? '' : n <= 3 ? 'lv1' : n <= 9 ? 'lv2' : 'lv3';
+      cells += '<div class="heat-cell ' + lv + '" title="' + key + '：' + n + ' 题"></div>';
+    }
+    // 近 14 天正确率趋势
+    var pts = [];
+    for (var j = 13; j >= 0; j--) {
+      var dd = new Date(); dd.setDate(dd.getDate() - j);
+      var k2 = dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0') + '-' + String(dd.getDate()).padStart(2, '0');
+      var hs = state.history.filter(function (h) { return h.date === k2 && h.correct !== null && h.correct !== undefined; });
+      pts.push(hs.length ? hs.filter(function (h) { return h.correct; }).length / hs.length * 100 : null);
+    }
+    var W = 260, H = 60, path = '', started = false;
+    pts.forEach(function (v, i) {
+      if (v === null) { started = false; return; }
+      var x = 6 + i * ((W - 12) / 13);
+      var y = H - 6 - (v / 100) * (H - 12);
+      path += (started ? ' L' : ' M') + x.toFixed(1) + ',' + y.toFixed(1);
+      started = true;
+    });
+    var ringPct = st.gradeable ? st.pct : 0;
+    var circ = 2 * Math.PI * 40;
+    var dash = circ * ringPct / 100;
+    var bars = trackTypes().slice(0, 5).map(function (t) {
+      var hs = state.history.filter(function (h) { return h.typeId === t && h.correct !== null && h.correct !== undefined; });
+      var c = hs.filter(function (h) { return h.correct; }).length;
+      var v = hs.length ? Math.round(c / hs.length * 100) : 0;
+      return '<div class="bar-row"><span class="bar-name">' + esc(QB.types[t].short) + '</span>' +
+        '<span class="bar-track"><span class="bar-fill" style="width:' + v + '%"></span></span>' +
+        '<span class="bar-val">' + (hs.length ? v + '%' : '—') + '</span></div>';
+    }).join('');
+    return '<div class="stats-dash card"><div class="ts-title">📈 学习数据</div>' +
+      '<div class="ring-wrap"><div class="ring"><svg width="96" height="96" viewBox="0 0 96 96">' +
+      '<circle cx="48" cy="48" r="40" fill="none" stroke="var(--line)" stroke-width="10"/>' +
+      '<circle cx="48" cy="48" r="40" fill="none" stroke="var(--brand)" stroke-width="10" stroke-linecap="round" ' +
+      'stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '"/></svg>' +
+      '<div class="ring-txt">' + ringPct + '%<small>正确率</small></div></div>' +
+      '<div class="bars">' + bars + '</div></div>' +
+      '<div class="ts-title" style="margin-top:14px">近 30 天打卡</div><div class="heatmap">' + cells + '</div>' +
+      '<div class="ts-title" style="margin-top:14px">近 14 天正确率趋势</div>' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="60" preserveAspectRatio="none" style="display:block">' +
+      '<path d="' + path + '" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>' +
+      '<div class="mc-sub">连续打卡 ' + st.streak + ' 天 · 累计学习 ' + st.activeDays + ' 天 · 共 ' + st.total + ' 题</div>' +
+      '</div>';
+  }
+
+  /* ---------- 数据备份 ---------- */
+  function renderBackupCard() {
+    var snaps = window.Backup ? window.Backup.snapshotInfo() : [];
+    var snapHtml = snaps.length ? snaps.map(function (s, i) {
+      return '<div class="ts-row"><span class="ts-name">' + s.date + '</span>' +
+        '<span class="ts-cnt">' + s.questions + ' 题 · 错题 ' + s.wrong + '</span>' +
+        '<button class="btn small ghost" data-restore="' + i + '">恢复</button></div>';
+    }).join('') : '<div class="empty-in">暂无自动快照（每天首次打开会自动生成）</div>';
+    return '<div class="backup card"><div class="ts-title">💾 数据备份 · 换设备不丢</div>' +
+      '<div class="cfg-desc">数据默认只存在本机浏览器。换手机/清缓存前先「导出数据」，在新设备「导入数据」即可恢复（支持合并两边的记录）。</div>' +
+      '<div class="dash-actions">' +
+      '<button class="btn" data-export>⬇️ 导出数据</button>' +
+      '<button class="btn ghost" data-import-pick>⬆️ 导入文件</button>' +
+      '<button class="btn ghost" data-import-text>📋 粘贴导入</button>' +
+      '<button class="btn ghost" data-poster>🖼️ 生成分享海报</button>' +
+      '<button class="btn ghost" data-copy-share>📄 复制分享文案</button>' +
+      '</div>' +
+      '<div class="ts-title" style="margin-top:16px">自动快照（最近 3 天）</div>' + snapHtml +
+      '<input type="file" id="importFile" accept="application/json,.json" style="display:none">' +
+      '</div>';
+  }
+
+  /* ---------- 成就徽章 ---------- */
+  function renderAchievements() {
+    var st = window.Share ? window.Share.computeStats(state) : { total: 0, streak: 0, mastered: 0, pct: 0, gradeable: 0 };
+    var badges = [
+      { icon: '🌱', name: '初次刷题', desc: '完成 1 题', on: st.total >= 1 },
+      { icon: '🔥', name: '连续 3 天', desc: '打卡 3 天', on: st.streak >= 3 },
+      { icon: '🏅', name: '连续 7 天', desc: '打卡 7 天', on: st.streak >= 7 },
+      { icon: '💯', name: '百题达成', desc: '累计 100 题', on: st.total >= 100 },
+      { icon: '🎯', name: '正确率 80%', desc: '客观题 ≥80%', on: st.gradeable >= 20 && st.pct >= 80 },
+      { icon: '📚', name: '掌握 5 章', desc: '已掌握 5 个章节', on: st.mastered >= 5 },
+      { icon: '🧠', name: '掌握 10 章', desc: '已掌握 10 个章节', on: st.mastered >= 10 },
+      { icon: '🏆', name: '三百题', desc: '累计 300 题', on: st.total >= 300 }
+    ];
+    var got = badges.filter(function (b) { return b.on; }).length;
+    return '<div class="ach-card card"><div class="ts-title">🏆 成就徽章（' + got + '/' + badges.length + '）</div>' +
+      '<div class="ach-grid">' + badges.map(function (b) {
+        return '<div class="ach ' + (b.on ? 'on' : 'off') + '"><span class="ach-icon">' + b.icon + '</span>' +
+          '<span class="ach-name">' + b.name + '</span><span class="ach-desc">' + b.desc + '</span></div>';
+      }).join('') + '</div></div>';
+  }
+
+  /* ---------- 新用户引导 ---------- */
+  function renderOnboard() {
+    try { if (localStorage.getItem('gaoshu_onboard_v1') === '1') return ''; } catch (e) { }
+    return '<div class="onboard card"><div class="ts-title">👋 欢迎来到高数刷题营</div>' +
+      '<ol><li><b>每天 10 题</b>：按复习节奏自动出题，做完看「思路 + 分步 + 易错点」</li>' +
+      '<li><b>标三态</b>：已掌握（7 天后）/ 不熟练（1 天后）/ 未掌握（连续 2 天）</li>' +
+      '<li><b>错题本</b>：答错自动收录，可勾选「举一反三」重做同题型变式题</li></ol>' +
+      '<button class="btn ghost" data-onboard-close>知道了，开始刷题</button></div>';
+  }
+
+  /* ---------- 变式题参数差异 ---------- */
+  function paramDiff(a, b) {
+    a = a || {}; b = b || {};
+    var keys = Object.keys(a).filter(function (k) { return b[k] !== undefined && a[k] !== b[k]; });
+    if (!keys.length) return '';
+    return keys.map(function (k) { return k + '：' + a[k] + ' → ' + b[k]; }).join('，');
+  }
+
   /* ---------- 学习记录 ---------- */
   function renderRecords() {
     var hist = state.history.slice().reverse();
@@ -900,9 +1066,14 @@
     });
     html += '</div>';
 
+    // 学习数据可视化（正确率环 / 章节正确率 / 30 天打卡 / 14 天趋势）
+    html += renderStatsCard();
+
+    // 数据备份（导出 / 导入 / 自动快照 / 分享）
+    html += renderBackupCard();
+
     // 历史列表
-    html += '<div class="hist card"><div class="ts-title">做题记录（最近 ' + Math.min(hist.length, 50) + ' 条）</div>';
-    if (!hist.length) {
+    html += '<div class="hist card"><div class="ts-title">做题记录（最近 ' + Math.min(hist.length, 50) + ' 条）</div>';    if (!hist.length) {
       html += '<div class="empty-in">还没有记录，去完成今天的 10 题吧！</div>';
     } else {
       html += '<div class="hist-list">' + hist.slice(0, 50).map(function (h) {
@@ -934,8 +1105,9 @@
       '<span class="tag mark-not">未掌握 → 连续 2 天出类似题</span>' +
       '</div></div>';
 
-    html += '<div class="mas-grid">' + trackTypes().map(function (t) {
-      var m = QB.types[t];
+    html += renderAchievements();
+
+    html += '<div class="mas-grid">' + trackTypes().map(function (t) {      var m = QB.types[t];
       var hs = state.history.filter(function (h) { return h.typeId === t; });
       var gr = hs.filter(function (h) { return h.correct !== null && h.correct !== undefined; });
       var c = gr.filter(function (h) { return h.correct; }).length;
@@ -967,6 +1139,19 @@
       state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
       save();
       renderShell();
+    });
+
+    // 导入文件选择
+    document.addEventListener('change', function (e) {
+      var el = e.target;
+      if (!el || el.id !== 'importFile' || !el.files || !el.files[0]) return;
+      var f = el.files[0];
+      if (f.size > 8 * 1024 * 1024) { toast('文件太大（>8MB），请检查是否选错'); return; }
+      var reader = new FileReader();
+      reader.onload = function () { doImport(String(reader.result || '')); };
+      reader.onerror = function () { toast('读取文件失败'); };
+      reader.readAsText(f, 'utf-8');
+      el.value = '';
     });
 
     // 板块切换：高数 / 北京高考
@@ -1272,6 +1457,89 @@
       var vgo = t.closest('[data-view-go]');
       if (vgo) { switchView(vgo.getAttribute('data-view-go')); return; }
 
+      // 跟课刷题：一键练当前章节 10 题（进入专项练习）
+      var qk = t.closest('[data-quick]');
+      if (qk) {
+        var qt = qk.getAttribute('data-quick');
+        if (!QB.types[qt]) return;
+        state.custom.settings.typeIds = [qt];
+        state.custom.settings.difficulty = 'mixed';
+        state.custom.settings.count = 10;
+        var avoid = {};
+        if (state.types[qt] && state.types[qt].lastSig) avoid[qt] = [state.types[qt].lastSig];
+        var builtQ = S.buildCustom({
+          typeIds: [qt], difficulty: 'mixed', count: 10,
+          forms: isGk() ? [] : effForms(state.custom.settings.forms), avoidMap: avoid
+        });
+        state.custom.set = { date: today, questions: builtQ.questions, answers: {} };
+        Object.keys(builtQ.lastSigs).forEach(function (tt) {
+          state.types[tt] = state.types[tt] || {};
+          state.types[tt].lastSig = builtQ.lastSigs[tt];
+        });
+        customIdx = 0;
+        save();
+        view = 'custom';
+        render();
+        toast('已生成「' + QB.types[qt].short + '」10 题');
+        return;
+      }
+
+      // 新用户引导关闭
+      if (t.closest('[data-onboard-close]')) {
+        try { localStorage.setItem('gaoshu_onboard_v1', '1'); } catch (e) { }
+        renderDaily();
+        return;
+      }
+
+      // 导出数据
+      if (t.closest('[data-export]')) {
+        if (!window.Backup) return;
+        window.Backup.download('gaoshu-backup-' + today + '.json', window.Backup.exportText());
+        toast('已导出备份文件');
+        return;
+      }
+      // 导入文件
+      if (t.closest('[data-import-pick]')) {
+        var fi = document.getElementById('importFile');
+        if (fi) fi.click();
+        return;
+      }
+      // 粘贴导入
+      if (t.closest('[data-import-text]')) {
+        var txt = window.prompt('粘贴备份 JSON 文本（整段复制）：');
+        if (!txt) return;
+        doImport(txt);
+        return;
+      }
+      // 恢复自动快照
+      var rs = t.closest('[data-restore]');
+      if (rs) {
+        var idx = parseInt(rs.getAttribute('data-restore'), 10);
+        if (!window.confirm('恢复这份快照会覆盖当前数据，确定吗？')) return;
+        if (window.Backup.restoreSnapshot(idx)) {
+          state = Store.load();
+          save();
+          render();
+          toast('已恢复快照');
+        }
+        return;
+      }
+      // 生成分享海报
+      if (t.closest('[data-poster]')) {
+        if (!window.Share) return;
+        window.Share.downloadPoster(state, { trackName: isGk() ? '北京高考 · 选择/填空/解答' : '高数 · 每天 10 题' });
+        toast('海报已生成，可保存分享');
+        return;
+      }
+      // 复制分享文案
+      if (t.closest('[data-copy-share]')) {
+        if (!window.Share) return;
+        window.Share.copyText(window.Share.shareText(state)).then(function (ok) {
+          toast(ok ? '分享文案已复制' : '复制失败，请手动复制');
+        });
+        return;
+      }
+
       // 错题本操作
       var wf = t.closest('[data-wf]');
       if (wf) { wrongFilter = wf.getAttribute('data-wf'); renderWrong(); return; }
@@ -1344,6 +1612,10 @@
               avoid: entry.sig ? [entry.sig] : []
             });
             q.dueReason = '错题变式';
+            // 记录原题参数，用于展示"变式差异"（同题型、换数字）
+            q.originParams = entry.params || null;
+            q.originTpl = entry.tpl || '';
+            q.originQuestion = entry.question || '';
             redoQs.push(q);
             redoSrc.push(sid);
           });
@@ -1398,6 +1670,8 @@
         save();
       }
     } catch (e) { }
+    // 每次启动自动做一份当日快照（保留最近 3 天），避免误操作丢数据
+    if (window.Backup) { try { window.Backup.autoSnapshot(); } catch (e) { } }
     bindEvents();
     render();
     // 跨天自动刷新
