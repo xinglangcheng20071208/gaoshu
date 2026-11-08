@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>E2E</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../vendor/katex/katex.min.css">
 <link rel="stylesheet" href="../css/style.css">
 </head>
 <body data-theme="light">
@@ -18,7 +18,9 @@
 <footer class="foot"><button id="resetBtn" class="foot-btn">重置全部数据</button></footer>
 <div id="result" style="display:none">PENDING</div>
 
+<script src="../vendor/katex/katex.min.js"></script>
 <script src="../js/katex-fallback.js"></script>
+<script src="../js/math-renderer.js"></script>
 <script src="../js/core.js"></script>
 <script src="../js/qb-limit.js"></script>
 <script src="../js/qb-derivative.js"></script>
@@ -32,6 +34,8 @@
 <script src="../js/qb-gaokao.js"></script>
 <script src="../js/scheduler.js"></script>
 <script src="../js/store.js"></script>
+<script src="../js/backup.js"></script>
+<script src="../js/share.js"></script>
 <script src="../js/app.js"></script>
 <script>
 var results = [];
@@ -151,10 +155,16 @@ function go() {
                     log('records-stats', !!document.querySelector('.stats'));
                     log('records-hist-1', document.querySelectorAll('.hist-item').length === 1);
                     log('records-type-table', document.querySelectorAll('.ts-row').length === 7);
+                    log('records-stats-dash', !!document.querySelector('.stats-dash'));
+                    log('records-heatmap', document.querySelectorAll('.heat-cell').length === 30);
+                    log('records-backup', !!document.querySelector('.backup') && !!document.querySelector('[data-export]'));
+                    log('records-snapshot-hint', !!document.querySelector('.backup'));
                     // 7. 掌握度
                     click(document.querySelector('.tab[data-view="mastery"]'));
                     step(function () {
                       log('mastery-7-cards', document.querySelectorAll('.mas-card').length === 7);
+                      log('mastery-achievements', document.querySelectorAll('.ach').length === 8);
+                      log('mastery-ach-on', document.querySelectorAll('.ach.on').length >= 1);
                       // 8. 深色模式切换
                       click(document.getElementById('themeBtn'));
                       step(function () {
